@@ -21,7 +21,7 @@
     "@nuxtjs/tailwindcss": "^6.12.1",
     "@pinia/nuxt": "^0.5.5",
     "@vueuse/core": "^11.1.0",
-    "lucide-vue-next": "^0.454.0",
+    "lucide-vue-next": "^1.0.0",
     "nuxt": "^3.13.2",
     "onnxruntime-web": "^1.31.1",
     "pinia": "^2.2.6",
