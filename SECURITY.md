@@ -70,3 +70,4 @@ Fashfolio.io を独自のサーバーでホストする場合、以下は運用�
 - HTTPS（SSL/TLS）の必須化（WebGPU の動作にも HTTPS または localhost が必須です）
 - `backend/.env` のアクセス権限保護（`chmod 600`）
 - サーバー OS および Node.js / Python 依存環境の最新化
+
