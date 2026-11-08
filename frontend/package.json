@@ -19,7 +19,7 @@
   "dependencies": {
     "@huggingface/tokenizers": "^0.2.0",
     "@nuxtjs/tailwindcss": "^6.12.1",
-    "@pinia/nuxt": "^0.5.5",
+    "@pinia/nuxt": "^1.0.3",
     "@vueuse/core": "^11.1.0",
     "lucide-vue-next": "^0.454.0",
     "nuxt": "^3.13.2",
