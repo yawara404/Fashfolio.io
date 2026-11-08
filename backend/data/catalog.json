@@ -1,0 +1,984 @@
+[
+  {
+    "id": "ribbon-blouse",
+    "name": "リボンタイブラウス",
+    "name_en": "ribbon-tie blouse",
+    "category": "tops",
+    "kind": "blouse",
+    "material": "コットン",
+    "material_en": "cotton",
+    "tags": [
+      "blouse",
+      "bow",
+      "puffy_sleeves"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "襟元のリボンとふくらんだ袖がポイント。スカートにもパンツにも。"
+  },
+  {
+    "id": "lace-blouse",
+    "name": "レースカラーブラウス",
+    "name_en": "lace-collar blouse",
+    "category": "tops",
+    "kind": "lace",
+    "material": "レース",
+    "material_en": "lace",
+    "tags": [
+      "blouse",
+      "lace",
+      "frills"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "レースの質感と、レースカラーブラウスのシルエットを組み合わせに。"
+  },
+  {
+    "id": "rib-knit",
+    "name": "リブニット",
+    "name_en": "ribbed knit sweater",
+    "category": "tops",
+    "kind": "knit",
+    "material": "リブニット",
+    "material_en": "ribbed knit",
+    "tags": [
+      "sweater",
+      "turtleneck",
+      "long_sleeves"
+    ],
+    "styles": [
+      "casual",
+      "classic"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "リブニットの質感と、リブニットのシルエットを組み合わせに。"
+  },
+  {
+    "id": "graphic-tee",
+    "name": "オーバーサイズTシャツ",
+    "name_en": "oversized graphic T-shirt",
+    "category": "tops",
+    "kind": "tee",
+    "material": "コットンジャージー",
+    "material_en": "cotton jersey",
+    "tags": [
+      "t-shirt",
+      "oversized_clothes",
+      "short_sleeves"
+    ],
+    "styles": [
+      "street",
+      "casual"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "コットンジャージーの質感と、オーバーサイズTシャツのシルエットを組み合わせに。"
+  },
+  {
+    "id": "sailor-top",
+    "name": "セーラーカラートップス",
+    "name_en": "sailor-collar top",
+    "category": "tops",
+    "kind": "sailor",
+    "material": "コットン",
+    "material_en": "cotton",
+    "tags": [
+      "sailor_collar",
+      "shirt",
+      "ribbon"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "コットンの質感と、セーラーカラートップスのシルエットを組み合わせに。"
+  },
+  {
+    "id": "crop-knit",
+    "name": "クロップドカーディガン",
+    "name_en": "cropped button-front cardigan",
+    "category": "tops",
+    "kind": "cardigan",
+    "material": "ウールニット",
+    "material_en": "wool knit",
+    "tags": [
+      "cardigan",
+      "crop_top",
+      "buttons"
+    ],
+    "styles": [
+      "girly",
+      "street"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ウールニットの質感と、クロップドカーディガンのシルエットを組み合わせに。"
+  },
+  {
+    "id": "short-blouson",
+    "name": "ショートブルゾン",
+    "name_en": "cropped blouson jacket",
+    "category": "outer",
+    "kind": "blouson",
+    "material": "コットンツイル",
+    "material_en": "cotton twill",
+    "tags": [
+      "jacket",
+      "puffy_sleeves",
+      "cropped_jacket"
+    ],
+    "styles": [
+      "girly",
+      "casual"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "コットンツイルの質感と、ショートブルゾンのシルエットを組み合わせに。"
+  },
+  {
+    "id": "trench",
+    "name": "ベルト付きトレンチコート",
+    "name_en": "belted double-breasted trench coat",
+    "category": "outer",
+    "kind": "trench",
+    "material": "ギャバジン",
+    "material_en": "gabardine",
+    "tags": [
+      "trench_coat",
+      "belt",
+      "double-breasted"
+    ],
+    "styles": [
+      "classic",
+      "casual"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "肩のヨーク、ダブルの前合わせ、ウエストベルトで構造をつかむ。"
+  },
+  {
+    "id": "piped-cardigan",
+    "name": "パイピングニットジャケット",
+    "name_en": "contrast-trim knit jacket",
+    "category": "outer",
+    "kind": "cardigan",
+    "material": "ニット",
+    "material_en": "knitted fabric",
+    "tags": [
+      "cardigan",
+      "jacket",
+      "buttons"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ニットの質感と、パイピングニットジャケットのシルエットを組み合わせに。"
+  },
+  {
+    "id": "checked-jacket",
+    "name": "チェックジャケット",
+    "name_en": "tailored checked jacket",
+    "category": "outer",
+    "kind": "blazer",
+    "material": "チェック柄ツイード",
+    "material_en": "checked tweed",
+    "tags": [
+      "blazer",
+      "plaid",
+      "double-breasted"
+    ],
+    "styles": [
+      "classic",
+      "girly"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "チェック柄ツイードの質感と、チェックジャケットのシルエットを組み合わせに。"
+  },
+  {
+    "id": "zip-hoodie",
+    "name": "配色ジップパーカー",
+    "name_en": "color-block zip hoodie",
+    "category": "outer",
+    "kind": "hoodie",
+    "material": "スウェット",
+    "material_en": "sweatshirt fleece",
+    "tags": [
+      "hoodie",
+      "zipper",
+      "long_sleeves"
+    ],
+    "styles": [
+      "street",
+      "casual"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "スウェットの質感と、配色ジップパーカーのシルエットを組み合わせに。"
+  },
+  {
+    "id": "long-cape",
+    "name": "スタンドカラーマント",
+    "name_en": "stand-collar cape",
+    "category": "outer",
+    "kind": "cape",
+    "material": "ウール",
+    "material_en": "wool",
+    "tags": [
+      "cape",
+      "high_collar",
+      "clasp"
+    ],
+    "styles": [
+      "fantasy",
+      "classic"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ウールの質感と、スタンドカラーマントのシルエットを組み合わせに。"
+  },
+  {
+    "id": "pleated-skirt",
+    "name": "プリーツミニスカート",
+    "name_en": "pleated mini skirt",
+    "category": "bottoms",
+    "kind": "skirt",
+    "material": "ポリエステル",
+    "material_en": "polyester",
+    "tags": [
+      "pleated_skirt",
+      "miniskirt"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "腰から裾へ広がるプリーツで、立ち姿にも動きを。"
+  },
+  {
+    "id": "tiered-skirt",
+    "name": "ティアードスカート",
+    "name_en": "tiered ruffle skirt",
+    "category": "bottoms",
+    "kind": "tiered",
+    "material": "コットン",
+    "material_en": "cotton",
+    "tags": [
+      "tiered_skirt",
+      "frilled_skirt",
+      "skirt"
+    ],
+    "styles": [
+      "girly",
+      "fantasy"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "コットンの質感と、ティアードスカートのシルエットを組み合わせに。"
+  },
+  {
+    "id": "wide-jeans",
+    "name": "ワイドデニム",
+    "name_en": "wide-leg denim jeans",
+    "category": "bottoms",
+    "kind": "pants",
+    "material": "デニム",
+    "material_en": "denim",
+    "tags": [
+      "jeans",
+      "wide_pants",
+      "denim"
+    ],
+    "styles": [
+      "casual",
+      "street"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "デニムの質感と、ワイドデニムのシルエットを組み合わせに。"
+  },
+  {
+    "id": "cargo-pants",
+    "name": "カーゴパンツ",
+    "name_en": "utility cargo trousers",
+    "category": "bottoms",
+    "kind": "cargo",
+    "material": "ナイロン",
+    "material_en": "nylon",
+    "tags": [
+      "cargo_pants",
+      "pants",
+      "pockets"
+    ],
+    "styles": [
+      "street",
+      "casual"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ナイロンの質感と、カーゴパンツのシルエットを組み合わせに。"
+  },
+  {
+    "id": "tailored-shorts",
+    "name": "ハイウエストショートパンツ",
+    "name_en": "high-waisted tailored shorts",
+    "category": "bottoms",
+    "kind": "shorts",
+    "material": "ツイル",
+    "material_en": "twill",
+    "tags": [
+      "shorts",
+      "high-waist_shorts"
+    ],
+    "styles": [
+      "classic",
+      "casual"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ツイルの質感と、ハイウエストショートパンツのシルエットを組み合わせに。"
+  },
+  {
+    "id": "long-skirt",
+    "name": "フレアロングスカート",
+    "name_en": "flowing A-line maxi skirt",
+    "category": "bottoms",
+    "kind": "long-skirt",
+    "material": "シフォン",
+    "material_en": "chiffon",
+    "tags": [
+      "long_skirt",
+      "skirt",
+      "flowing_clothes"
+    ],
+    "styles": [
+      "girly",
+      "fantasy"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "シフォンの質感と、フレアロングスカートのシルエットを組み合わせに。"
+  },
+  {
+    "id": "mary-janes",
+    "name": "ストラップシューズ",
+    "name_en": "Mary Jane strap shoes",
+    "category": "shoes",
+    "kind": "maryjanes",
+    "material": "エナメル",
+    "material_en": "patent leather",
+    "tags": [
+      "mary_janes",
+      "shoes"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "足の甲を横切るストラップと、丸いつま先が特徴。"
+  },
+  {
+    "id": "sneakers",
+    "name": "ローカットスニーカー",
+    "name_en": "low-top lace-up sneakers",
+    "category": "shoes",
+    "kind": "sneakers",
+    "material": "キャンバス",
+    "material_en": "canvas",
+    "tags": [
+      "sneakers",
+      "shoelaces"
+    ],
+    "styles": [
+      "casual",
+      "street"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "キャンバスの質感と、ローカットスニーカーのシルエットを組み合わせに。"
+  },
+  {
+    "id": "ankle-boots",
+    "name": "レースアップショートブーツ",
+    "name_en": "lace-up ankle boots",
+    "category": "shoes",
+    "kind": "boots",
+    "material": "レザー",
+    "material_en": "leather",
+    "tags": [
+      "ankle_boots",
+      "lace-up_boots"
+    ],
+    "styles": [
+      "classic",
+      "street",
+      "fantasy"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "レザーの質感と、レースアップショートブーツのシルエットを組み合わせに。"
+  },
+  {
+    "id": "loafers",
+    "name": "チャンキーローファー",
+    "name_en": "chunky-sole loafers",
+    "category": "shoes",
+    "kind": "loafers",
+    "material": "レザー",
+    "material_en": "leather",
+    "tags": [
+      "loafers",
+      "platform_footwear"
+    ],
+    "styles": [
+      "classic",
+      "girly"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "レザーの質感と、チャンキーローファーのシルエットを組み合わせに。"
+  },
+  {
+    "id": "sandals",
+    "name": "クロスストラップサンダル",
+    "name_en": "cross-strap platform sandals",
+    "category": "shoes",
+    "kind": "sandals",
+    "material": "レザー",
+    "material_en": "leather",
+    "tags": [
+      "sandals",
+      "platform_footwear"
+    ],
+    "styles": [
+      "girly",
+      "casual"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "レザーの質感と、クロスストラップサンダルのシルエットを組み合わせに。"
+  },
+  {
+    "id": "long-boots",
+    "name": "ロングブーツ",
+    "name_en": "knee-high riding boots",
+    "category": "shoes",
+    "kind": "long-boots",
+    "material": "レザー",
+    "material_en": "leather",
+    "tags": [
+      "knee_boots",
+      "boots"
+    ],
+    "styles": [
+      "street",
+      "fantasy"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "レザーの質感と、ロングブーツのシルエットを組み合わせに。"
+  },
+  {
+    "id": "ribbon-clip",
+    "name": "リボンバレッタ",
+    "name_en": "ribbon hair barrette",
+    "category": "head",
+    "kind": "ribbon",
+    "material": "サテン",
+    "material_en": "satin",
+    "tags": [
+      "hair_bow",
+      "hair_ribbon"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "サテンの質感と、リボンバレッタのシルエットを組み合わせに。"
+  },
+  {
+    "id": "bucket-hat",
+    "name": "バケットハット",
+    "name_en": "soft bucket hat",
+    "category": "head",
+    "kind": "bucket",
+    "material": "コットン",
+    "material_en": "cotton",
+    "tags": [
+      "bucket_hat",
+      "hat"
+    ],
+    "styles": [
+      "casual",
+      "street"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "コットンの質感と、バケットハットのシルエットを組み合わせに。"
+  },
+  {
+    "id": "beret",
+    "name": "ウールベレー帽",
+    "name_en": "wool beret",
+    "category": "head",
+    "kind": "beret",
+    "material": "ウール",
+    "material_en": "wool",
+    "tags": [
+      "beret",
+      "hat"
+    ],
+    "styles": [
+      "classic",
+      "girly"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ウールの質感と、ウールベレー帽のシルエットを組み合わせに。"
+  },
+  {
+    "id": "round-glasses",
+    "name": "ラウンドメガネ",
+    "name_en": "round tortoiseshell glasses",
+    "category": "head",
+    "kind": "glasses",
+    "material": "アセテート",
+    "material_en": "acetate",
+    "tags": [
+      "round_eyewear",
+      "glasses"
+    ],
+    "styles": [
+      "classic",
+      "casual"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "アセテートの質感と、ラウンドメガネのシルエットを組み合わせに。"
+  },
+  {
+    "id": "flower-clip",
+    "name": "フラワーヘアクリップ",
+    "name_en": "flower hair clip",
+    "category": "head",
+    "kind": "flower",
+    "material": "樹脂",
+    "material_en": "resin",
+    "tags": [
+      "flower_hair_ornament",
+      "hair_ornament"
+    ],
+    "styles": [
+      "girly",
+      "fantasy"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "樹脂の質感と、フラワーヘアクリップのシルエットを組み合わせに。"
+  },
+  {
+    "id": "headphones",
+    "name": "オーバーイヤーヘッドホン",
+    "name_en": "over-ear headphones",
+    "category": "head",
+    "kind": "headphones",
+    "material": "マット樹脂",
+    "material_en": "matte plastic",
+    "tags": [
+      "headphones"
+    ],
+    "styles": [
+      "street",
+      "casual"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "マット樹脂の質感と、オーバーイヤーヘッドホンのシルエットを組み合わせに。"
+  },
+  {
+    "id": "handbag",
+    "name": "ラウンドハンドバッグ",
+    "name_en": "rounded top-handle handbag",
+    "category": "bag",
+    "kind": "handbag",
+    "material": "レザー",
+    "material_en": "leather",
+    "tags": [
+      "handbag",
+      "bag"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "丸みのある本体と短い持ち手で、上品なアクセントを。"
+  },
+  {
+    "id": "basket-bag",
+    "name": "バスケットバッグ",
+    "name_en": "woven basket shoulder bag",
+    "category": "bag",
+    "kind": "basket",
+    "material": "ラタン",
+    "material_en": "woven rattan",
+    "tags": [
+      "basket",
+      "shoulder_bag"
+    ],
+    "styles": [
+      "girly",
+      "casual"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ラタンの質感と、バスケットバッグのシルエットを組み合わせに。"
+  },
+  {
+    "id": "frill-tote",
+    "name": "フリルトートバッグ",
+    "name_en": "ruffle-trim tote bag",
+    "category": "bag",
+    "kind": "tote",
+    "material": "コットン",
+    "material_en": "cotton",
+    "tags": [
+      "tote_bag",
+      "frills"
+    ],
+    "styles": [
+      "girly",
+      "casual"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "コットンの質感と、フリルトートバッグのシルエットを組み合わせに。"
+  },
+  {
+    "id": "crossbody",
+    "name": "ミニショルダーバッグ",
+    "name_en": "mini crossbody satchel",
+    "category": "bag",
+    "kind": "crossbody",
+    "material": "レザー",
+    "material_en": "leather",
+    "tags": [
+      "shoulder_bag",
+      "satchel"
+    ],
+    "styles": [
+      "classic",
+      "street"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "レザーの質感と、ミニショルダーバッグのシルエットを組み合わせに。"
+  },
+  {
+    "id": "backpack",
+    "name": "ユーティリティリュック",
+    "name_en": "utility backpack",
+    "category": "bag",
+    "kind": "backpack",
+    "material": "ナイロン",
+    "material_en": "nylon",
+    "tags": [
+      "backpack",
+      "straps"
+    ],
+    "styles": [
+      "street",
+      "casual"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ナイロンの質感と、ユーティリティリュックのシルエットを組み合わせに。"
+  },
+  {
+    "id": "drawstring",
+    "name": "巾着ポーチ",
+    "name_en": "drawstring pouch bag",
+    "category": "bag",
+    "kind": "pouch",
+    "material": "ベルベット",
+    "material_en": "velvet",
+    "tags": [
+      "drawstring_bag",
+      "pouch"
+    ],
+    "styles": [
+      "girly",
+      "fantasy"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ベルベットの質感と、巾着ポーチのシルエットを組み合わせに。"
+  },
+  {
+    "id": "pearl-necklace",
+    "name": "パールネックレス",
+    "name_en": "pearl necklace with a small charm",
+    "category": "jewelry",
+    "kind": "necklace",
+    "material": "パール",
+    "material_en": "pearl",
+    "tags": [
+      "pearl_necklace",
+      "necklace"
+    ],
+    "styles": [
+      "girly",
+      "classic"
+    ],
+    "colors": [
+      "#D7E6ED",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "小粒のパールを連ねて、首まわりに明るいリズムを。"
+  },
+  {
+    "id": "flower-earrings",
+    "name": "フラワーピアス",
+    "name_en": "flower-shaped pearl earrings",
+    "category": "jewelry",
+    "kind": "earrings",
+    "material": "パール・ゴールド",
+    "material_en": "pearl and gold",
+    "tags": [
+      "earrings",
+      "flower_earrings"
+    ],
+    "styles": [
+      "girly",
+      "fantasy"
+    ],
+    "colors": [
+      "#F4D9CF",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "パール・ゴールドの質感と、フラワーピアスのシルエットを組み合わせに。"
+  },
+  {
+    "id": "chain-bracelet",
+    "name": "チェーンブレスレット",
+    "name_en": "fine chain bracelet",
+    "category": "jewelry",
+    "kind": "bracelet",
+    "material": "シルバー",
+    "material_en": "silver",
+    "tags": [
+      "bracelet",
+      "chain"
+    ],
+    "styles": [
+      "classic",
+      "street"
+    ],
+    "colors": [
+      "#F6EDDA",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "シルバーの質感と、チェーンブレスレットのシルエットを組み合わせに。"
+  },
+  {
+    "id": "ribbon-choker",
+    "name": "リボンチョーカー",
+    "name_en": "ribbon choker with a charm",
+    "category": "jewelry",
+    "kind": "choker",
+    "material": "ベルベット",
+    "material_en": "velvet",
+    "tags": [
+      "choker",
+      "ribbon"
+    ],
+    "styles": [
+      "girly",
+      "fantasy"
+    ],
+    "colors": [
+      "#DAD5E7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ベルベットの質感と、リボンチョーカーのシルエットを組み合わせに。"
+  },
+  {
+    "id": "pendant",
+    "name": "オーバルペンダント",
+    "name_en": "oval gemstone pendant",
+    "category": "jewelry",
+    "kind": "pendant",
+    "material": "ゴールド・宝石",
+    "material_en": "gold and gemstone",
+    "tags": [
+      "pendant",
+      "necklace"
+    ],
+    "styles": [
+      "classic",
+      "fantasy"
+    ],
+    "colors": [
+      "#D5DFD0",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "ゴールド・宝石の質感と、オーバルペンダントのシルエットを組み合わせに。"
+  },
+  {
+    "id": "hoop-earrings",
+    "name": "フープイヤリング",
+    "name_en": "small hoop earrings",
+    "category": "jewelry",
+    "kind": "hoops",
+    "material": "シルバー",
+    "material_en": "silver",
+    "tags": [
+      "hoop_earrings",
+      "earrings"
+    ],
+    "styles": [
+      "street",
+      "casual"
+    ],
+    "colors": [
+      "#ECD0D7",
+      "#FCFAF5",
+      "#B6A6B7"
+    ],
+    "description": "シルバーの質感と、フープイヤリングのシルエットを組み合わせに。"
+  }
+]

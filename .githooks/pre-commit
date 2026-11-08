@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+python3 scripts/check_publish.py
+if command -v gitleaks >/dev/null 2>&1; then
+  scanner=gitleaks
+elif test -x .git/tools/gitleaks; then
+  scanner=.git/tools/gitleaks
+else
+  echo 'Install gitleaks (brew install gitleaks) before committing.' >&2
+  exit 1
+fi
+exec "$scanner" git --pre-commit --staged --redact --no-banner .

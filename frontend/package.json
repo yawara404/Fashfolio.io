@@ -1,0 +1,41 @@
+{
+  "name": "fashfolio-io",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "nuxtr": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs",
+    "postinstall": "nuxt prepare && node ../scripts/copy-ort-assets.mjs",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "prebuild": "node ../scripts/copy-ort-assets.mjs",
+    "predev": "node ../scripts/copy-ort-assets.mjs",
+    "pregenerate": "node ../scripts/copy-ort-assets.mjs"
+  },
+  "dependencies": {
+    "@huggingface/tokenizers": "^0.2.0",
+    "@nuxtjs/tailwindcss": "^6.12.1",
+    "@pinia/nuxt": "^0.5.5",
+    "@vueuse/core": "^11.1.0",
+    "lucide-vue-next": "^0.454.0",
+    "nuxt": "^3.13.2",
+    "onnxruntime-web": "^1.31.1",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.12",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/test-utils": "^2.5.1",
+    "fake-indexeddb": "^6.2.7",
+    "happy-dom": "^20.14.6",
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.7",
+    "vue-tsc": "^3.1.0"
+  }
+}

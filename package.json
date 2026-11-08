@@ -1,0 +1,15 @@
+{
+  "name": "fashfolio",
+  "private": true,
+  "scripts": {
+    "dev": "bash start.sh",
+    "dev:frontend": "npm --prefix frontend run dev -- --host 127.0.0.1 --port 3005",
+    "build": "npm --prefix frontend run build",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "test:backend": "backend/.venv/bin/python -m unittest discover -s backend/tests -v",
+    "setup": "bash scripts/setup.sh",
+    "test:frontend": "npm --prefix frontend test",
+    "sync:github": "bash scripts/sync-github.sh",
+    "check:publish": "python3 scripts/check_publish.py"
+  }
+}
