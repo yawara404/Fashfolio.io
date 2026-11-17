@@ -1,9 +1,13 @@
-import { computed, ref } from "vue";
+import { computed, nextTick, onScopeDispose, ref, watch } from "vue";
 import { defineStore } from "pinia";
 import builtInCatalog from "~/data/wardrobe.json";
 import { readLocalGarments, writeLocalGarment, deleteLocalGarment } from "~/utils/localWardrobe";
 import { localPrompt } from "~/utils/localPrompt";
 import { catalogArtworkUrl } from "~/utils/catalogArtwork";
+import { useAvatar } from "~/composables/useAvatar";
+import { resolveStudioPose } from "~/data/studioPoses";
+import { garmentPaint, isHexColor, canPaintGarment, sanitizeGarmentColors } from "~/utils/garmentColors";
+import { hydrateCloudWorkspace, scheduleCloudSync } from "~/utils/cloudStorage";
 import type {
   Garment,
   Category,
@@ -11,7 +15,10 @@ import type {
   Integrations,
   PromptResult,
   SavedOutfit,
+  PresetAudience,
 } from "~/types/wardrobe";
+
+const defaultPalette = builtInCatalog.palettes.find(p => p.id === "gray")!;
 
 export const useWardrobe = defineStore("wardrobe", () => {
   const catalog = ref<Catalog>({
@@ -21,16 +28,21 @@ export const useWardrobe = defineStore("wardrobe", () => {
     palettes: [],
   });
   const activeCategory = ref<Category>("tops");
+  const presetAudience = ref<PresetAudience>("womens");
   const selections = ref<Partial<Record<Category, string>>>({});
   const locks = ref<Category[]>([]);
   const style = ref("girly");
-  const palette = ref(["#E8BFCB", "#FAF7EF", "#BECDE0", "#B7ADC8", "#555164"]);
-  const paletteId = ref("petal");
+  const palette = ref([...defaultPalette.colors]);
+  const paletteId = ref(defaultPalette.id);
   const previewPaletteColors = ref(true);
-  const previewImage = (item: Garment) => catalogArtworkUrl(item, palette.value, previewPaletteColors.value);
-  const title = ref("春色のガーリーコーデ");
+  const garmentColors = ref<Record<string, string[]>>({});
+  const heads = ref(5);
+  const paintedItem = (item: Garment): Garment => garmentColors.value[item.id] ? { ...item, paint: garmentColors.value[item.id] } : item;
+  const previewImage = (item: Garment) => catalogArtworkUrl(paintedItem(item), palette.value, previewPaletteColors.value);
+  const paintOf = (item: Garment) => garmentPaint(paintedItem(item), palette.value, previewPaletteColors.value);
+  const title = ref("グレーのガーリーコーデ");
   const notes = ref("");
-  const idea = ref("春のお出かけ。甘すぎない、やさしいガーリーコーデ。");
+  const idea = ref("グレーを基調にした、やさしいガーリーコーデ。");
   const query = ref("");
   const styleFilter = ref(false);
   const loading = ref(false);
@@ -54,12 +66,13 @@ export const useWardrobe = defineStore("wardrobe", () => {
       const item = catalog.value.items.find(
         (i) => i.id === selections.value[c.id],
       );
-      return item ? [item] : [];
+      return item ? [paintedItem(item)] : [];
     }),
   );
   const visibleItems = computed(() =>
     catalog.value.items.filter((item) => {
-      if (item.category !== activeCategory.value) return false;
+      if (item.category !== activeCategory.value && !(activeCategory.value === "socks" && item.kind === "tights")) return false;
+      if (!matchesAudience(item)) return false;
       if (styleFilter.value && !item.styles.includes(style.value)) return false;
       const text = [item.name, item.name_en, item.material, ...item.tags]
         .join(" ")
@@ -74,6 +87,7 @@ export const useWardrobe = defineStore("wardrobe", () => {
     title: title.value,
     notes: notes.value,
     style: style.value,
+    garment_colors: Object.fromEntries(selectedItems.value.map(item => [item.id, paintOf(item)])),
   }));
   const signature = computed(() => JSON.stringify(request.value));
   const resultIsStale = computed(
@@ -89,8 +103,80 @@ export const useWardrobe = defineStore("wardrobe", () => {
       if (toast.value === message) toast.value = "";
     }, 3200);
   }
+  function matchesAudience(item: Garment) {
+    const audience=item.audience || "unisex";
+    return !!item.source || audience === "unisex" || audience === presetAudience.value;
+  }
+  function applyDefault(gender: "girl" | "boy") {
+    selections.value = gender === "boy" ? {
+      underwear: "cotton-inner-shorts", socks: "ankle-socks", inner: "cotton-tank", tops: "mens-shirt", outer: "mens-blazer", bottoms: "straight-slacks", shoes: "loafers",
+    } : {
+      underwear: "cotton-inner-shorts", socks: "ankle-socks", inner: "cotton-camisole", tops: "ribbon-blouse", bottoms: "pleated-skirt", shoes: "mary-janes", head: "ribbon-clip",
+    };
+    locks.value=[];
+    presetAudience.value=gender === "boy" ? "mens" : "womens";
+    style.value=gender === "boy" ? "classic" : "girly";
+    if (paletteId.value === "gray") palette.value=gender === "boy" ? ["#F1F0ED","#5C616A","#70747E","#92909C","#4D4C57"] : [...defaultPalette.colors];
+    if (["グレーのガーリーコーデ","グレーのブレザーコーデ"].includes(title.value))
+      title.value=gender === "boy" ? "グレーのブレザーコーデ" : "グレーのガーリーコーデ";
+  }
+  const avatar=useAvatar();
+  const snapshot = computed(() => JSON.stringify({
+    item_ids: selectedItems.value.map(item => item.id), palette: palette.value, style: style.value,
+    name: title.value, notes: notes.value, gender: avatar.config.gender || "girl", pose: avatar.pose.id,
+    heads: heads.value, garmentColors: garmentColors.value, paletteColors: previewPaletteColors.value,
+    locks: locks.value,
+  }));
+  const history = ref<string[]>([]);
+  const historyIndex = ref(-1);
+  const draftStatus = ref("");
+  let ready = false, restoring = false;
+  let draftTimer: ReturnType<typeof setTimeout> | undefined;
+  const canUndo = computed(() => historyIndex.value > 0);
+  const canRedo = computed(() => historyIndex.value < history.value.length - 1);
+  function persistDraft() {
+    try { localStorage.setItem("fashfolio.draft.v1", snapshot.value); draftStatus.value = "このブラウザに自動保存済み"; scheduleCloudSync(); }
+    catch { draftStatus.value = "自動保存できません。ブラウザの保存設定を確認してください。"; }
+  }
+  watch(snapshot, value => {
+    if (!ready || restoring) return;
+    if (history.value[historyIndex.value] !== value) {
+      history.value = [...history.value.slice(0, historyIndex.value + 1), value].slice(-60);
+      historyIndex.value = history.value.length - 1;
+    }
+    draftStatus.value = "保存中…";
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(persistDraft, 250);
+  });
+  async function travelHistory(delta: number) {
+    const index = historyIndex.value + delta;
+    if (index < 0 || index >= history.value.length) return;
+    restoring = true;
+    restore(JSON.parse(history.value[index]!));
+    historyIndex.value = index;
+    await nextTick(); restoring = false;
+    persistDraft();
+  }
+  const undo = () => travelHistory(-1);
+  const redo = () => travelHistory(1);
+  onScopeDispose(() => {
+    clearTimeout(draftTimer);
+    if (typeof window !== "undefined") window.removeEventListener("pagehide", persistDraft);
+  });
+  watch(() => avatar.config.gender, gender => {
+    if (catalog.value.items.length) applyDefault(gender || "girl");
+  }, {flush:"sync"});
   function choose(item: Garment) {
+    if (locks.value.includes(item.category)) return notify("ロックを解除すると変更できます。");
     selections.value = { ...selections.value, [item.category]: item.id };
+  }
+  function updateGarmentColor(item: Garment, index: number, color: string) {
+    if (!canPaintGarment(item) || !isHexColor(color) || index < 0 || index > 2) return;
+    const colors = [...paintOf(item)]; colors[index] = color.toUpperCase();
+    garmentColors.value = { ...garmentColors.value, [item.id]: colors };
+  }
+  function resetGarmentColor(id: string) {
+    const next = { ...garmentColors.value }; delete next[id]; garmentColors.value = next;
   }
   function remove(category: Category) {
     if (locks.value.includes(category))
@@ -127,27 +213,22 @@ export const useWardrobe = defineStore("wardrobe", () => {
   async function initialize() {
     loading.value = true;
     error.value = "";
+    let allowDraftRestore = true;
     try {
       const local = catalog.value.items.filter((i) => i.source);
       catalog.value = { ...builtInCatalog as Catalog, items: [...builtInCatalog.items as Garment[], ...local] };
       // Select the starter coordinate immediately so the avatar is never
       // shown undressed while IndexedDB is still opening.
-      if (!selectedItems.value.length)
-        selections.value = {
-          tops: "ribbon-blouse",
-          outer: "short-blouson",
-          bottoms: "pleated-skirt",
-          shoes: "mary-janes",
-          head: "ribbon-clip",
-          bag: "handbag",
-          jewelry: "pearl-necklace",
-        };
+      if (!selectedItems.value.length) applyDefault(avatar.config.gender || "girl");
       // Basic dressing and prompts remain usable without Python or an external API.
       loading.value = false;
       await generate(false);
       if (import.meta.client && !localLoaded) {
+        const beforeCloud = snapshot.value;
+        const restored = await hydrateCloudWorkspace();
+        allowDraftRestore = snapshot.value === beforeCloud;
         try {
-          for (const record of await readLocalGarments()) {
+          for (const record of [...await readLocalGarments(),...restored]) {
             if (!catalog.value.items.some((i) => i.id === record.item.id))
               catalog.value.items.push({ ...record.item, imageUrl: URL.createObjectURL(record.image) });
           }
@@ -170,6 +251,17 @@ export const useWardrobe = defineStore("wardrobe", () => {
               )
               .slice(0, 20);
         } catch {}
+      }
+      if (!ready) {
+        try {
+          const draft = JSON.parse(localStorage.getItem("fashfolio.draft.v1") || "null");
+          if (allowDraftRestore && draft && Array.isArray(draft.item_ids)) restore(draft);
+        } catch { /* A damaged or unavailable draft never prevents dressing. */ }
+        await nextTick();
+        history.value = [snapshot.value]; historyIndex.value = 0; ready = true;
+        if (typeof window !== "undefined") window.addEventListener("pagehide", persistDraft);
+        draftStatus.value = "変更はこのブラウザに自動保存";
+        await generate(false);
       }
     } catch {
       error.value =
@@ -221,6 +313,7 @@ export const useWardrobe = defineStore("wardrobe", () => {
             .filter((i) => locks.value.includes(i.category))
             .map((i) => i.id),
           use_ai: useAI,
+          audience: presetAudience.value,
         },
         timeout: 105000,
       });
@@ -241,7 +334,18 @@ export const useWardrobe = defineStore("wardrobe", () => {
             response.reason,
       );
     } catch {
-      notify("衣装を提案できませんでした。接続を確認して再試行してください。");
+      if (signature.value !== snapshot) return notify("編集中のコーデを残しました。");
+      const next = { ...selections.value };
+      for (const category of catalog.value.categories) {
+        if (locks.value.includes(category.id)) continue;
+        const compatible = catalog.value.items.filter(item => item.category === category.id && matchesAudience(item));
+        const styled = compatible.filter(item => item.styles.includes(style.value));
+        const pool = styled.length ? styled : compatible;
+        if (pool.length) next[category.id] = pool[Math.floor(Math.random() * pool.length)]!.id;
+        else delete next[category.id];
+      }
+      selections.value = next;
+      notify("端末内の衣装から組み合わせました。ロックした服はそのままです。");
     } finally {
       recommending.value = false;
     }
@@ -253,39 +357,57 @@ export const useWardrobe = defineStore("wardrobe", () => {
       id: crypto.randomUUID(),
       name: title.value || "無題のコーデ",
       ...request.value,
+      pose: useAvatar().pose.id,
+      gender: avatar.config.gender || "girl",
+      heads: heads.value,
+      garmentColors: JSON.parse(JSON.stringify(garmentColors.value)),
+      paletteColors: previewPaletteColors.value,
       createdAt: new Date().toISOString(),
     };
-    saved.value = [item, ...saved.value].slice(0, 20);
+    const next = [item, ...saved.value].slice(0, 20);
     try {
-      localStorage.setItem("fashfolio.outfits.v2", JSON.stringify(saved.value));
+      localStorage.setItem("fashfolio.outfits.v2", JSON.stringify(next));
+      saved.value = next;
+      scheduleCloudSync();
       notify("このブラウザにコーデを保存しました。");
     } catch {
       notify("保存できませんでした。ブラウザの保存容量を確認してください。");
     }
   }
   function load(outfit: SavedOutfit) {
+    restore(outfit);
+    notify("保存したコーデを読み込みました。");
+  }
+  function restore(outfit: Partial<SavedOutfit>) {
+    if (outfit.gender === "boy" || outfit.gender === "girl") avatar.setGender(outfit.gender);
+    avatar.setPose(resolveStudioPose(outfit.pose).id);
+    if ([5,6,7].includes(outfit.heads!)) heads.value = outfit.heads!;
     selections.value = Object.fromEntries(
-      outfit.item_ids.flatMap((id) => {
+      (outfit.item_ids || []).flatMap((id) => {
         const item = catalog.value.items.find((i) => i.id === id);
         return item ? [[item.category, id]] : [];
       }),
     );
-    palette.value = outfit.palette
-      .filter((c) => /^#[0-9a-f]{6}$/i.test(c))
+    palette.value = (Array.isArray(outfit.palette) ? outfit.palette : [])
+      .filter(isHexColor)
       .slice(0, 5);
     if (palette.value.length !== 5)
-      palette.value = [...catalog.value.palettes[0]!.colors];
-    paletteId.value = "";
-    style.value = outfit.style;
-    notes.value = outfit.notes;
-    title.value = outfit.name;
-    locks.value = [];
-    notify("保存したコーデを読み込みました。");
+      palette.value = [...defaultPalette.colors];
+    paletteId.value = catalog.value.palettes.find(p => JSON.stringify(p.colors) === JSON.stringify(palette.value))?.id || "";
+    style.value = typeof outfit.style === "string" ? outfit.style.slice(0,40) : "girly";
+    notes.value = typeof outfit.notes === "string" ? outfit.notes.slice(0,1000) : "";
+    title.value = typeof outfit.name === "string" ? outfit.name.slice(0,100) : "無題のコーデ";
+    garmentColors.value = sanitizeGarmentColors(outfit.garmentColors);
+    previewPaletteColors.value = outfit.paletteColors !== false;
+    presetAudience.value = avatar.config.gender === "boy" ? "mens" : "womens";
+    locks.value = Array.isArray(outfit.locks) ? outfit.locks.filter(category => catalog.value.categories.some(entry => entry.id === category)) : [];
   }
   function deleteSaved(id: string) {
-    saved.value = saved.value.filter((s) => s.id !== id);
+    const next = saved.value.filter((s) => s.id !== id);
     try {
-      localStorage.setItem("fashfolio.outfits.v2", JSON.stringify(saved.value));
+      localStorage.setItem("fashfolio.outfits.v2", JSON.stringify(next));
+      saved.value = next;
+      scheduleCloudSync();
     } catch {
       notify("保存一覧を更新できませんでした。");
     }
@@ -315,6 +437,8 @@ export const useWardrobe = defineStore("wardrobe", () => {
   return {
     catalog,
     activeCategory,
+    presetAudience,
+    matchesAudience,
     selections,
     locks,
     style,
@@ -322,6 +446,16 @@ export const useWardrobe = defineStore("wardrobe", () => {
     paletteId,
     previewPaletteColors,
     previewImage,
+    paintOf,
+    garmentColors,
+    heads,
+    updateGarmentColor,
+    resetGarmentColor,
+    draftStatus,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
     title,
     notes,
     idea,

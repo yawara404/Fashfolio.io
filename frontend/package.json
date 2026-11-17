@@ -3,18 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
+    "build": "NUXT_BUILD_DIR=.nuxt-build nuxt build",
     "dev": "nuxt dev",
     "nuxtr": "nuxt dev",
-    "generate": "nuxt generate",
+    "generate": "NUXT_BUILD_DIR=.nuxt-generate nuxt generate",
     "preview": "nuxt preview",
     "start": "node .output/server/index.mjs",
     "postinstall": "nuxt prepare && node ../scripts/copy-ort-assets.mjs",
-    "typecheck": "nuxt typecheck",
+    "typecheck": "NUXT_BUILD_DIR=.nuxt-check nuxt prepare && vue-tsc --noEmit --project tsconfig.check.json",
     "test": "vitest run",
     "prebuild": "node ../scripts/copy-ort-assets.mjs",
     "predev": "node ../scripts/copy-ort-assets.mjs",
-    "pregenerate": "node ../scripts/copy-ort-assets.mjs"
+    "pregenerate": "node ../scripts/copy-ort-assets.mjs",
+    "prenuxtr": "node ../scripts/copy-ort-assets.mjs"
   },
   "dependencies": {
     "@huggingface/tokenizers": "^0.2.0",

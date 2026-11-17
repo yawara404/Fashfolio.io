@@ -1,6 +1,6 @@
 export interface MeshPoint { x: number; y: number }
 export interface ArtworkAnchor { source: MeshPoint; target: MeshPoint }
-export interface ArtworkPiece { clip: string; transform: string; region?: string }
+export interface ArtworkPiece { clip: string; transform: string; sourceTriangle?: string; region?: string; layer?: import("./garmentLayers").GarmentArtworkLayer; surface?: "bodice"|"sleeve-left"|"sleeve-right" }
 type Triangle = [number, number, number];
 const cross = (a: MeshPoint, b: MeshPoint, c: MeshPoint) => (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
 const n = (x: number) => String(Math.round(x*100000)/100000);
@@ -39,10 +39,32 @@ export function affinePiece(source: [MeshPoint,MeshPoint,MeshPoint], target: [Me
   const xy=((c.x-a.x)*(q.x-p.x)-(b.x-a.x)*(r.x-p.x))/det;
   const yx=((b.y-a.y)*(r.y-p.y)-(c.y-a.y)*(q.y-p.y))/det;
   const yy=((c.y-a.y)*(q.x-p.x)-(b.y-a.y)*(r.x-p.x))/det;
-  // A fraction of a source pixel of overlap prevents anti-alias seams between tiles.
-  const center={x:(p.x+q.x+r.x)/3,y:(p.y+q.y+r.y)/3};
-  const clip=source.map(v=>`${n(v.x+(v.x-center.x)*.002)} ${n(v.y+(v.y-center.y)*.002)}`).join(" ");
-  return { clip, transform:`matrix(${n(xx)} ${n(yx)} ${n(xy)} ${n(yy)} ${n(a.x-xx*p.x-xy*p.y)} ${n(a.y-yx*p.x-yy*p.y)})` };
+  // A fixed overlap along each edge closes raster hairlines even on long, thin
+  // cloth triangles. Proportional centroid expansion left cracks on trouser legs.
+  const margin=.65, orientation=Math.sign(det);
+  const normals=source.map((v,i)=>{
+    const next=source[(i+1)%3]!,dx=next.x-v.x,dy=next.y-v.y,length=Math.hypot(dx,dy);
+    return {x:orientation*dy/length,y:-orientation*dx/length};
+  });
+  const clip=source.map((v,i)=>{
+    const before=normals[(i+2)%3]!,after=normals[i]!;
+    const x=before.x+after.x,y=before.y+after.y;
+    const scale=Math.min(margin/Math.max(.0001,x*after.x+y*after.y),3/Math.max(.0001,Math.hypot(x,y)));
+    return `${n(v.x+x*scale)} ${n(v.y+y*scale)}`;
+  }).join(" ");
+  return { clip, sourceTriangle:source.map(v=>`${n(v.x)} ${n(v.y)}`).join(" "), transform:`matrix(${n(xx)} ${n(yx)} ${n(xy)} ${n(yy)} ${n(a.x-xx*p.x-xy*p.y)} ${n(a.y-yx*p.x-yy*p.y)})` };
+}
+
+export function projectArtworkPoint(pieces: ArtworkPiece[], point: MeshPoint): MeshPoint | undefined {
+  const piece=pieces.find(piece=>{
+    const numbers=(piece.sourceTriangle||piece.clip).split(" ").map(Number);
+    const vertices=[0,2,4].map(i=>({x:numbers[i]!,y:numbers[i+1]!}));
+    const signs=vertices.map((p,i)=>cross(p,vertices[(i+1)%3]!,point));
+    return signs.every(v=>v>=-.0001)||signs.every(v=>v<=.0001);
+  });
+  if (!piece) return;
+  const [a,b,c,d,e,f]=piece.transform.slice(7,-1).split(" ").map(Number);
+  return {x:a!*point.x+c!*point.y+e!,y:b!*point.x+d!*point.y+f!};
 }
 
 export function artworkMesh(anchors: ArtworkAnchor[]): ArtworkPiece[] {

@@ -1,10 +1,261 @@
 {
   "items": [
     {
+      "id": "white-tights",
+      "name": "白タイツ",
+      "name_en": "opaque white tights",
+      "category": "underwear",
+      "audience": "unisex",
+      "kind": "tights",
+      "material": "ストレッチニット",
+      "material_en": "stretch knit",
+      "tags": [
+        "white_tights",
+        "opaque_tights"
+      ],
+      "styles": [
+        "casual",
+        "classic",
+        "girly"
+      ],
+      "colors": [
+        "#F3F2F0",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "ストレッチニットの質感と、白タイツのシルエットを組み合わせに。"
+    },
+    {
+      "id": "black-tights",
+      "name": "黒タイツ",
+      "name_en": "opaque black tights",
+      "category": "underwear",
+      "audience": "unisex",
+      "kind": "tights",
+      "material": "ストレッチニット",
+      "material_en": "stretch knit",
+      "tags": [
+        "black_tights",
+        "opaque_tights"
+      ],
+      "styles": [
+        "casual",
+        "classic",
+        "girly"
+      ],
+      "colors": [
+        "#34343B",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "ストレッチニットの質感と、黒タイツのシルエットを組み合わせに。"
+    },
+    {
+      "id": "cotton-inner-shorts",
+      "name": "フィットショートパンツ",
+      "name_en": "fitted cotton athletic shorts",
+      "category": "underwear",
+      "audience": "unisex",
+      "kind": "inner-shorts",
+      "material": "コットン",
+      "material_en": "cotton jersey",
+      "tags": [
+        "fitted_shorts",
+        "athletic_shorts"
+      ],
+      "styles": [
+        "casual",
+        "classic",
+        "girly"
+      ],
+      "colors": [
+        "#F1F0ED",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "コットンの質感と、フィットショートパンツのシルエットを組み合わせに。"
+    },
+    {
+      "id": "inner-spats",
+      "name": "インナースパッツ",
+      "name_en": "fitted inner cycling shorts",
+      "category": "underwear",
+      "audience": "unisex",
+      "kind": "inner-spats",
+      "material": "ストレッチコットン",
+      "material_en": "stretch cotton",
+      "tags": [
+        "inner_shorts",
+        "cycling_shorts"
+      ],
+      "styles": [
+        "casual",
+        "street"
+      ],
+      "colors": [
+        "#4D4C57",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "ストレッチコットンの質感と、インナースパッツのシルエットを組み合わせに。"
+    },
+    {
+      "id": "ankle-socks",
+      "name": "アンクルソックス",
+      "name_en": "plain ankle socks",
+      "category": "socks",
+      "audience": "unisex",
+      "kind": "ankle-socks",
+      "material": "コットン",
+      "material_en": "cotton",
+      "tags": [
+        "ankle_socks",
+        "socks"
+      ],
+      "styles": [
+        "casual",
+        "classic",
+        "girly"
+      ],
+      "colors": [
+        "#F1F0ED",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "コットンの質感と、アンクルソックスのシルエットを組み合わせに。"
+    },
+    {
+      "id": "crew-socks",
+      "name": "クルーソックス",
+      "name_en": "ribbed crew socks",
+      "category": "socks",
+      "audience": "unisex",
+      "kind": "crew-socks",
+      "material": "リブコットン",
+      "material_en": "ribbed cotton",
+      "tags": [
+        "crew_socks",
+        "ribbed_socks"
+      ],
+      "styles": [
+        "casual",
+        "street",
+        "classic"
+      ],
+      "colors": [
+        "#F1F0ED",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "リブコットンの質感と、クルーソックスのシルエットを組み合わせに。"
+    },
+    {
+      "id": "knee-socks",
+      "name": "ハイソックス",
+      "name_en": "plain knee-high socks",
+      "category": "socks",
+      "audience": "unisex",
+      "kind": "knee-socks",
+      "material": "コットン",
+      "material_en": "cotton",
+      "tags": [
+        "knee_socks",
+        "socks"
+      ],
+      "styles": [
+        "girly",
+        "classic"
+      ],
+      "colors": [
+        "#4D4C57",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "コットンの質感と、ハイソックスのシルエットを組み合わせに。"
+    },
+    {
+      "id": "cotton-camisole",
+      "name": "コットンキャミソール",
+      "name_en": "plain cotton camisole",
+      "category": "inner",
+      "audience": "womens",
+      "kind": "camisole",
+      "material": "コットン",
+      "material_en": "soft cotton",
+      "tags": [
+        "camisole",
+        "sleeveless",
+        "shoulder_straps"
+      ],
+      "styles": [
+        "girly",
+        "casual",
+        "classic"
+      ],
+      "colors": [
+        "#F1F0ED",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "細い肩ひもとゆるやかな胸元。シャツの下にも、一枚の着こなしにも。"
+    },
+    {
+      "id": "rib-camisole",
+      "name": "リブキャミソール",
+      "name_en": "ribbed cotton camisole",
+      "category": "inner",
+      "audience": "womens",
+      "kind": "camisole",
+      "material": "リブコットン",
+      "material_en": "ribbed cotton",
+      "tags": [
+        "camisole",
+        "ribbed_fabric",
+        "shoulder_straps"
+      ],
+      "styles": [
+        "girly",
+        "casual",
+        "street"
+      ],
+      "colors": [
+        "#BFC1C6",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "縦のリブと細い肩ひもで、すっきりとした重ね着に。"
+    },
+    {
+      "id": "cotton-tank",
+      "name": "コットンタンクトップ",
+      "name_en": "plain cotton tank top",
+      "category": "inner",
+      "audience": "unisex",
+      "kind": "tank",
+      "material": "コットン",
+      "material_en": "soft cotton",
+      "tags": [
+        "tank_top",
+        "sleeveless"
+      ],
+      "styles": [
+        "casual",
+        "classic",
+        "street"
+      ],
+      "colors": [
+        "#F1F0ED",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "コットンの質感と、コットンタンクトップのシルエットを組み合わせに。"
+    },
+    {
       "id": "ribbon-blouse",
       "name": "リボンタイブラウス",
       "name_en": "ribbon-tie blouse",
       "category": "tops",
+      "audience": "womens",
       "kind": "blouse",
       "material": "コットン",
       "material_en": "cotton",
@@ -29,6 +280,7 @@
       "name": "レースカラーブラウス",
       "name_en": "lace-collar blouse",
       "category": "tops",
+      "audience": "womens",
       "kind": "lace",
       "material": "レース",
       "material_en": "lace",
@@ -53,6 +305,7 @@
       "name": "リブニット",
       "name_en": "ribbed knit sweater",
       "category": "tops",
+      "audience": "unisex",
       "kind": "knit",
       "material": "リブニット",
       "material_en": "ribbed knit",
@@ -77,6 +330,7 @@
       "name": "オーバーサイズTシャツ",
       "name_en": "oversized graphic T-shirt",
       "category": "tops",
+      "audience": "unisex",
       "kind": "tee",
       "material": "コットンジャージー",
       "material_en": "cotton jersey",
@@ -101,6 +355,7 @@
       "name": "セーラーカラートップス",
       "name_en": "sailor-collar top",
       "category": "tops",
+      "audience": "womens",
       "kind": "sailor",
       "material": "コットン",
       "material_en": "cotton",
@@ -125,6 +380,7 @@
       "name": "クロップドカーディガン",
       "name_en": "cropped button-front cardigan",
       "category": "tops",
+      "audience": "womens",
       "kind": "cardigan",
       "material": "ウールニット",
       "material_en": "wool knit",
@@ -145,10 +401,61 @@
       "description": "ウールニットの質感と、クロップドカーディガンのシルエットを組み合わせに。"
     },
     {
+      "id": "mens-shirt",
+      "name": "メンズ・オックスフォードシャツ",
+      "name_en": "men's oxford button-down shirt",
+      "category": "tops",
+      "audience": "mens",
+      "kind": "shirt",
+      "material": "オックスフォードコットン",
+      "material_en": "oxford cotton",
+      "tags": [
+        "shirt",
+        "button_down",
+        "long_sleeves"
+      ],
+      "styles": [
+        "classic",
+        "casual"
+      ],
+      "colors": [
+        "#F1F0ED",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "オックスフォードコットンの質感と、メンズ・オックスフォードシャツのシルエットを組み合わせに。"
+    },
+    {
+      "id": "mens-blazer",
+      "name": "メンズ・ブレザー",
+      "name_en": "men's single-breasted blazer",
+      "category": "outer",
+      "audience": "mens",
+      "kind": "blazer",
+      "material": "ウール",
+      "material_en": "tropical wool",
+      "tags": [
+        "blazer",
+        "single_breasted",
+        "notched_lapels"
+      ],
+      "styles": [
+        "classic",
+        "casual"
+      ],
+      "colors": [
+        "#5C616A",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "ウールの質感と、メンズ・ブレザーのシルエットを組み合わせに。"
+    },
+    {
       "id": "short-blouson",
       "name": "ショートブルゾン",
       "name_en": "cropped blouson jacket",
       "category": "outer",
+      "audience": "womens",
       "kind": "blouson",
       "material": "コットンツイル",
       "material_en": "cotton twill",
@@ -162,7 +469,7 @@
         "casual"
       ],
       "colors": [
-        "#D7E6ED",
+        "#F4D9CF",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -173,6 +480,7 @@
       "name": "ベルト付きトレンチコート",
       "name_en": "belted double-breasted trench coat",
       "category": "outer",
+      "audience": "unisex",
       "kind": "trench",
       "material": "ギャバジン",
       "material_en": "gabardine",
@@ -186,7 +494,7 @@
         "casual"
       ],
       "colors": [
-        "#F4D9CF",
+        "#F6EDDA",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -197,6 +505,7 @@
       "name": "パイピングニットジャケット",
       "name_en": "contrast-trim knit jacket",
       "category": "outer",
+      "audience": "womens",
       "kind": "cardigan",
       "material": "ニット",
       "material_en": "knitted fabric",
@@ -210,7 +519,7 @@
         "classic"
       ],
       "colors": [
-        "#F6EDDA",
+        "#DAD5E7",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -221,6 +530,7 @@
       "name": "チェックジャケット",
       "name_en": "tailored checked jacket",
       "category": "outer",
+      "audience": "mens",
       "kind": "blazer",
       "material": "チェック柄ツイード",
       "material_en": "checked tweed",
@@ -234,7 +544,7 @@
         "girly"
       ],
       "colors": [
-        "#DAD5E7",
+        "#D5DFD0",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -245,6 +555,7 @@
       "name": "配色ジップパーカー",
       "name_en": "color-block zip hoodie",
       "category": "outer",
+      "audience": "unisex",
       "kind": "hoodie",
       "material": "スウェット",
       "material_en": "sweatshirt fleece",
@@ -258,7 +569,7 @@
         "casual"
       ],
       "colors": [
-        "#D5DFD0",
+        "#ECD0D7",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -269,6 +580,7 @@
       "name": "スタンドカラーマント",
       "name_en": "stand-collar cape",
       "category": "outer",
+      "audience": "unisex",
       "kind": "cape",
       "material": "ウール",
       "material_en": "wool",
@@ -282,17 +594,43 @@
         "classic"
       ],
       "colors": [
-        "#ECD0D7",
+        "#D7E6ED",
         "#FCFAF5",
         "#B6A6B7"
       ],
       "description": "ウールの質感と、スタンドカラーマントのシルエットを組み合わせに。"
     },
     {
+      "id": "straight-slacks",
+      "name": "ストレートスラックス",
+      "name_en": "straight-leg pressed trousers",
+      "category": "bottoms",
+      "audience": "mens",
+      "kind": "pants",
+      "material": "ウール混",
+      "material_en": "wool blend",
+      "tags": [
+        "pants",
+        "slacks",
+        "pressed_crease"
+      ],
+      "styles": [
+        "classic",
+        "casual"
+      ],
+      "colors": [
+        "#70747E",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "ウール混の質感と、ストレートスラックスのシルエットを組み合わせに。"
+    },
+    {
       "id": "pleated-skirt",
       "name": "プリーツミニスカート",
       "name_en": "pleated mini skirt",
       "category": "bottoms",
+      "audience": "womens",
       "kind": "skirt",
       "material": "ポリエステル",
       "material_en": "polyester",
@@ -305,7 +643,7 @@
         "classic"
       ],
       "colors": [
-        "#D7E6ED",
+        "#F4D9CF",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -316,6 +654,7 @@
       "name": "ティアードスカート",
       "name_en": "tiered ruffle skirt",
       "category": "bottoms",
+      "audience": "womens",
       "kind": "tiered",
       "material": "コットン",
       "material_en": "cotton",
@@ -329,7 +668,7 @@
         "fantasy"
       ],
       "colors": [
-        "#F4D9CF",
+        "#F6EDDA",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -340,6 +679,7 @@
       "name": "ワイドデニム",
       "name_en": "wide-leg denim jeans",
       "category": "bottoms",
+      "audience": "unisex",
       "kind": "pants",
       "material": "デニム",
       "material_en": "denim",
@@ -353,7 +693,7 @@
         "street"
       ],
       "colors": [
-        "#F6EDDA",
+        "#DAD5E7",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -364,6 +704,7 @@
       "name": "カーゴパンツ",
       "name_en": "utility cargo trousers",
       "category": "bottoms",
+      "audience": "unisex",
       "kind": "cargo",
       "material": "ナイロン",
       "material_en": "nylon",
@@ -377,7 +718,7 @@
         "casual"
       ],
       "colors": [
-        "#DAD5E7",
+        "#D5DFD0",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -388,6 +729,7 @@
       "name": "ハイウエストショートパンツ",
       "name_en": "high-waisted tailored shorts",
       "category": "bottoms",
+      "audience": "unisex",
       "kind": "shorts",
       "material": "ツイル",
       "material_en": "twill",
@@ -400,7 +742,7 @@
         "casual"
       ],
       "colors": [
-        "#D5DFD0",
+        "#ECD0D7",
         "#FCFAF5",
         "#B6A6B7"
       ],
@@ -411,6 +753,7 @@
       "name": "フレアロングスカート",
       "name_en": "flowing A-line maxi skirt",
       "category": "bottoms",
+      "audience": "womens",
       "kind": "long-skirt",
       "material": "シフォン",
       "material_en": "chiffon",
@@ -424,17 +767,44 @@
         "fantasy"
       ],
       "colors": [
-        "#ECD0D7",
+        "#D7E6ED",
         "#FCFAF5",
         "#B6A6B7"
       ],
       "description": "シフォンの質感と、フレアロングスカートのシルエットを組み合わせに。"
     },
     {
+      "id": "dolphin-shorts",
+      "name": "ドルフィンパンツ",
+      "name_en": "curved-hem dolphin running shorts",
+      "category": "bottoms",
+      "audience": "unisex",
+      "kind": "dolphin",
+      "material": "コットンジャージー",
+      "material_en": "cotton jersey",
+      "tags": [
+        "dolphin_shorts",
+        "running_shorts",
+        "contrast_piping"
+      ],
+      "styles": [
+        "casual",
+        "street",
+        "girly"
+      ],
+      "colors": [
+        "#A9ADB5",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "丸く上がるサイドの裾と細いパイピング。腰と太ももに少しゆとりのある形。"
+    },
+    {
       "id": "mary-janes",
       "name": "ストラップシューズ",
       "name_en": "Mary Jane strap shoes",
       "category": "shoes",
+      "audience": "womens",
       "kind": "maryjanes",
       "material": "エナメル",
       "material_en": "patent leather",
@@ -458,6 +828,7 @@
       "name": "ローカットスニーカー",
       "name_en": "low-top lace-up sneakers",
       "category": "shoes",
+      "audience": "unisex",
       "kind": "sneakers",
       "material": "キャンバス",
       "material_en": "canvas",
@@ -481,6 +852,7 @@
       "name": "レースアップショートブーツ",
       "name_en": "lace-up ankle boots",
       "category": "shoes",
+      "audience": "unisex",
       "kind": "boots",
       "material": "レザー",
       "material_en": "leather",
@@ -505,6 +877,7 @@
       "name": "チャンキーローファー",
       "name_en": "chunky-sole loafers",
       "category": "shoes",
+      "audience": "unisex",
       "kind": "loafers",
       "material": "レザー",
       "material_en": "leather",
@@ -528,6 +901,7 @@
       "name": "クロスストラップサンダル",
       "name_en": "cross-strap platform sandals",
       "category": "shoes",
+      "audience": "unisex",
       "kind": "sandals",
       "material": "レザー",
       "material_en": "leather",
@@ -551,6 +925,7 @@
       "name": "ロングブーツ",
       "name_en": "knee-high riding boots",
       "category": "shoes",
+      "audience": "womens",
       "kind": "long-boots",
       "material": "レザー",
       "material_en": "leather",
@@ -574,6 +949,7 @@
       "name": "リボンバレッタ",
       "name_en": "ribbon hair barrette",
       "category": "head",
+      "audience": "womens",
       "kind": "ribbon",
       "material": "サテン",
       "material_en": "satin",
@@ -597,6 +973,7 @@
       "name": "バケットハット",
       "name_en": "soft bucket hat",
       "category": "head",
+      "audience": "unisex",
       "kind": "bucket",
       "material": "コットン",
       "material_en": "cotton",
@@ -620,6 +997,7 @@
       "name": "ウールベレー帽",
       "name_en": "wool beret",
       "category": "head",
+      "audience": "unisex",
       "kind": "beret",
       "material": "ウール",
       "material_en": "wool",
@@ -643,6 +1021,7 @@
       "name": "ラウンドメガネ",
       "name_en": "round tortoiseshell glasses",
       "category": "head",
+      "audience": "unisex",
       "kind": "glasses",
       "material": "アセテート",
       "material_en": "acetate",
@@ -666,6 +1045,7 @@
       "name": "フラワーヘアクリップ",
       "name_en": "flower hair clip",
       "category": "head",
+      "audience": "womens",
       "kind": "flower",
       "material": "樹脂",
       "material_en": "resin",
@@ -689,6 +1069,7 @@
       "name": "オーバーイヤーヘッドホン",
       "name_en": "over-ear headphones",
       "category": "head",
+      "audience": "unisex",
       "kind": "headphones",
       "material": "マット樹脂",
       "material_en": "matte plastic",
@@ -711,6 +1092,7 @@
       "name": "ラウンドハンドバッグ",
       "name_en": "rounded top-handle handbag",
       "category": "bag",
+      "audience": "unisex",
       "kind": "handbag",
       "material": "レザー",
       "material_en": "leather",
@@ -734,6 +1116,7 @@
       "name": "バスケットバッグ",
       "name_en": "woven basket shoulder bag",
       "category": "bag",
+      "audience": "unisex",
       "kind": "basket",
       "material": "ラタン",
       "material_en": "woven rattan",
@@ -757,6 +1140,7 @@
       "name": "フリルトートバッグ",
       "name_en": "ruffle-trim tote bag",
       "category": "bag",
+      "audience": "unisex",
       "kind": "tote",
       "material": "コットン",
       "material_en": "cotton",
@@ -780,6 +1164,7 @@
       "name": "ミニショルダーバッグ",
       "name_en": "mini crossbody satchel",
       "category": "bag",
+      "audience": "unisex",
       "kind": "crossbody",
       "material": "レザー",
       "material_en": "leather",
@@ -803,6 +1188,7 @@
       "name": "ユーティリティリュック",
       "name_en": "utility backpack",
       "category": "bag",
+      "audience": "unisex",
       "kind": "backpack",
       "material": "ナイロン",
       "material_en": "nylon",
@@ -826,6 +1212,7 @@
       "name": "巾着ポーチ",
       "name_en": "drawstring pouch bag",
       "category": "bag",
+      "audience": "unisex",
       "kind": "pouch",
       "material": "ベルベット",
       "material_en": "velvet",
@@ -845,10 +1232,37 @@
       "description": "ベルベットの質感と、巾着ポーチのシルエットを組み合わせに。"
     },
     {
+      "id": "canvas-tote",
+      "name": "キャンバスバッグ",
+      "name_en": "soft canvas tote bag with long handles",
+      "category": "bag",
+      "audience": "unisex",
+      "kind": "canvas-tote",
+      "material": "コットンキャンバス",
+      "material_en": "cotton canvas",
+      "tags": [
+        "tote_bag",
+        "canvas_bag",
+        "long_handles"
+      ],
+      "styles": [
+        "casual",
+        "girly",
+        "classic"
+      ],
+      "colors": [
+        "#E8E5DC",
+        "#FCFAF5",
+        "#B6A6B7"
+      ],
+      "description": "長めの持ち手と、荷物の重みで少したわむ帆布のトート。縫い目と底の丸みをさりげなく。"
+    },
+    {
       "id": "pearl-necklace",
       "name": "パールネックレス",
       "name_en": "pearl necklace with a small charm",
       "category": "jewelry",
+      "audience": "unisex",
       "kind": "necklace",
       "material": "パール",
       "material_en": "pearl",
@@ -872,6 +1286,7 @@
       "name": "フラワーピアス",
       "name_en": "flower-shaped pearl earrings",
       "category": "jewelry",
+      "audience": "unisex",
       "kind": "earrings",
       "material": "パール・ゴールド",
       "material_en": "pearl and gold",
@@ -895,6 +1310,7 @@
       "name": "チェーンブレスレット",
       "name_en": "fine chain bracelet",
       "category": "jewelry",
+      "audience": "unisex",
       "kind": "bracelet",
       "material": "シルバー",
       "material_en": "silver",
@@ -918,6 +1334,7 @@
       "name": "リボンチョーカー",
       "name_en": "ribbon choker with a charm",
       "category": "jewelry",
+      "audience": "womens",
       "kind": "choker",
       "material": "ベルベット",
       "material_en": "velvet",
@@ -941,6 +1358,7 @@
       "name": "オーバルペンダント",
       "name_en": "oval gemstone pendant",
       "category": "jewelry",
+      "audience": "unisex",
       "kind": "pendant",
       "material": "ゴールド・宝石",
       "material_en": "gold and gemstone",
@@ -964,6 +1382,7 @@
       "name": "フープイヤリング",
       "name_en": "small hoop earrings",
       "category": "jewelry",
+      "audience": "unisex",
       "kind": "hoops",
       "material": "シルバー",
       "material_en": "silver",
@@ -985,6 +1404,16 @@
   ],
   "categories": [
     {
+      "id": "inner",
+      "name": "インナー上",
+      "en": "INNER TOPS"
+    },
+    {
+      "id": "underwear",
+      "name": "インナー下",
+      "en": "INNER BOTTOMS"
+    },
+    {
       "id": "tops",
       "name": "トップス",
       "en": "TOPS"
@@ -998,6 +1427,11 @@
       "id": "bottoms",
       "name": "ボトムス",
       "en": "BOTTOMS"
+    },
+    {
+      "id": "socks",
+      "name": "靴下",
+      "en": "SOCKS"
     },
     {
       "id": "shoes",
@@ -1048,6 +1482,24 @@
     }
   ],
   "palettes": [
+    {
+      "id": "gray",
+      "name": "Soft gray",
+      "colors": [
+        "#BFC1C6",
+        "#F1F0ED",
+        "#A9ADB5",
+        "#92909C",
+        "#4D4C57"
+      ],
+      "names": [
+        "soft gray",
+        "pearl white",
+        "stone gray",
+        "ash gray",
+        "graphite gray"
+      ]
+    },
     {
       "id": "petal",
       "name": "Petal & mist",

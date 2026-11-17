@@ -1,11 +1,13 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { Garment } from "~/types/wardrobe";
+import { clearModelFiles } from "~/utils/modelCache";
 export const useDeviceGeneration = defineStore("device-generation", () => {
   const supported = ref<boolean | null>(null);
   const ready = ref(false);
   const busy = ref(false);
-  const phase = ref<"idle" | "prepare" | "generate">("idle");
+  const dialogOpen = ref(false);
+  const phase = ref<"idle" | "prepare" | "generate" | "tryon">("idle");
   const message = ref("");
   const progress = ref<number | null>(null);
   const error = ref("");
@@ -16,6 +18,7 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
   const duration = ref(0);
   const context = ref<{ base: Garment; prompt: string; name: string; colors: string[] } | null>(null);
   let worker: Worker | null = null;
+  let pendingTryOn: { resolve: (image: Blob) => void; reject: (error: Error) => void } | null = null;
   async function detect() {
     try {
       const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<{ features: Set<string> } | null> } }).gpu;
@@ -33,19 +36,33 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
     worker.onmessage = ({ data }) => {
       if (data.type === "status") { message.value = data.message; progress.value = data.progress ?? null; }
       if (data.type === "warning") warning.value = data.message;
-      if (data.type === "ready") { ready.value = true; busy.value = false; phase.value = "idle"; message.value = "この端末で生成できます"; progress.value = null; }
+      if (data.type === "ready") {
+        ready.value = true;
+        if (phase.value === "prepare") {
+          busy.value = false; phase.value = "idle"; message.value = "この端末で生成できます"; progress.value = null;
+        }
+      }
       if (data.type === "result") {
         clearResult(); image.value = data.image; preview.value = URL.createObjectURL(data.image);
         resultSeed.value = data.seed; duration.value = data.duration;
-        busy.value = false; phase.value = "idle"; message.value = "生成しました"; progress.value = null;
+        ready.value = true; busy.value = false; phase.value = "idle"; message.value = "生成しました"; progress.value = null;
+      }
+      if (data.type === "tryon-result") {
+        ready.value = true;
+        pendingTryOn?.resolve(data.image); pendingTryOn = null;
+        if (phase.value === "tryon") {
+          busy.value = false; phase.value = "idle"; progress.value = null; message.value = "服の描き直しが完了しました";
+        }
       }
       if (data.type === "error") {
+        pendingTryOn?.reject(new Error(data.message)); pendingTryOn = null;
         error.value = data.message; busy.value = false; phase.value = "idle"; progress.value = null;
         // Release partially initialized GPU sessions after failures as well.
         worker?.terminate(); worker = null; ready.value = false;
       }
     };
     worker.onerror = () => {
+      pendingTryOn?.reject(new Error("生成処理が停止しました。再試行してください。")); pendingTryOn = null;
       error.value = "生成処理を起動できませんでした。ページを再読み込みしてお試しください。";
       worker?.terminate(); worker = null; busy.value = false; ready.value = false; phase.value = "idle";
     };
@@ -58,21 +75,31 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
     catch { cancel(); error.value = "生成処理を起動できませんでした。ページを再読み込みしてください。"; }
   }
   function generate(prompt: string, seed: number, cutout: boolean, metadata: NonNullable<typeof context.value>) {
-    if (!ready.value || busy.value) return;
+    if (supported.value === false || (busy.value && phase.value === "generate")) return;
     clearResult(); error.value = ""; busy.value = true; phase.value = "generate";
     context.value = metadata;
-    message.value = "生成を開始しています";
+    message.value = ready.value ? "生成を開始しています" : "モデルを準備中";
     try { getWorker().postMessage({ type: "generate", prompt, seed, cutout }); }
     catch { cancel(); error.value = "生成処理を開始できませんでした。モデル準備から再試行してください。"; }
   }
   function cancel() {
+    pendingTryOn?.reject(new Error("生成を停止しました。")); pendingTryOn = null;
     worker?.terminate(); worker = null; busy.value = false; ready.value = false;
     phase.value = "idle"; progress.value = null; message.value = "処理を停止しました。取得済みモデルはキャッシュに残ります。";
   }
+  function renderTryOn(reference: Blob, mask: Blob, prompt: string, seed: number): Promise<Blob> {
+    if (!ready.value || busy.value) return Promise.reject(new Error("生成エンジンの準備ができていません。"));
+    busy.value = true; phase.value = "tryon"; error.value = ""; message.value = "参照画像から服を描き直しています";
+    return new Promise((resolve, reject) => {
+      pendingTryOn = { resolve, reject };
+      try { getWorker().postMessage({ type: "tryon", reference, mask, prompt, seed }); }
+      catch { pendingTryOn = null; busy.value = false; phase.value = "idle"; reject(new Error("生成処理を開始できませんでした。")); }
+    });
+  }
   async function clearCache() {
     cancel(); clearResult();
-    try { await caches.delete("fashfolio-sd-turbo-v1"); message.value = "モデルのキャッシュを削除しました"; }
+    try { await caches.delete("fashfolio-sd-turbo-v1"); await clearModelFiles(); message.value = "モデルのキャッシュを削除しました"; }
     catch { error.value = "キャッシュを削除できませんでした。ブラウザのサイトデータ設定をご確認ください。"; }
   }
-  return { supported, ready, busy, phase, message, progress, error, warning, image, preview, resultSeed, duration, context, detect, prepare, generate, cancel, clearCache, clearResult };
+  return { supported, ready, busy, dialogOpen, phase, message, progress, error, warning, image, preview, resultSeed, duration, context, detect, prepare, generate, renderTryOn, cancel, clearCache, clearResult };
 });

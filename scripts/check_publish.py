@@ -15,8 +15,8 @@ for record in filter(None, records):
     relative = PurePosixPath(path)
     name = relative.name
     reason = None
-    if any(part in private_dirs for part in relative.parts):
-        reason = "local data/build directory"
+    if any(part in private_dirs for part in relative.parts) or relative.parts[0] == "docs" or path == "PLAN.md":
+        reason = "local data/build/docs directory"
     elif (name == ".env" or name.startswith(".env.")) and name != ".env.example":
         reason = "environment secrets"
     elif relative.suffix.lower() in private_suffixes or name in {"id_rsa", "id_ed25519", "credentials.json", ".npmrc"}:

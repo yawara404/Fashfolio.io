@@ -504,24 +504,34 @@ textarea:focus-visible,
   color: var(--muted);
   margin-top: 7px;
 }
+/* 中央カラム（outfit）はヘッダー・左右サイドバーに挟まれた
+   「コンテンツ全体」が 1 本のスクロールになる。
+   以前は .atlas-scroll だけが内部スクロールしていて、見出しやタブが
+   常に固定されたまま中身だけ動く、落ち着かない見え方になっていた。 */
 .wardrobe-main {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--canvas);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .wardrobe-topline {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 25px 25px 18px;
+  padding: 14px 20px 10px;
+  flex-shrink: 0;
 }
 .wardrobe-topline h2 {
   font-size: 17px;
   font-weight: 500;
   letter-spacing: 0.03em;
-  margin: 8px 0 0;
+  margin: 6px 0 0;
 }
 .view-switch {
   display: flex;
@@ -547,13 +557,23 @@ textarea:focus-visible,
   background: var(--accent-soft);
   color: var(--accent);
 }
+/* 部位タブは中央カラムのスクロールに追従して上端に貼り付く。
+   全体スクロールにしても「今どの部位を見ているか」を失わないため。 */
 .category-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 12;
   display: flex;
   gap: 4px;
-  padding: 0 24px;
+  padding: 0 20px;
+  background: var(--canvas);
   border-bottom: 1px solid var(--line);
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.category-tabs::-webkit-scrollbar {
+  display: none;
 }
 .category-tabs button {
   position: relative;
@@ -563,8 +583,8 @@ textarea:focus-visible,
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 9px;
-  padding: 13px 4px 14px;
+  gap: 5px;
+  padding: 9px 4px 10px;
   color: var(--muted);
   border-bottom: 2px solid transparent;
   font-size: 8px;
@@ -583,7 +603,7 @@ textarea:focus-visible,
   width: 3px;
   height: 3px;
   background: var(--raised);
-  top: 11px;
+  top: 7px;
   right: calc(50% - 18px);
   border-radius: 50%;
 }
@@ -594,7 +614,8 @@ textarea:focus-visible,
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 17px 25px;
+  padding: 12px 20px;
+  flex-shrink: 0;
 }
 .atlas-search {
   display: flex;
@@ -659,9 +680,11 @@ textarea:focus-visible,
   width: 10px;
   height: 10px;
 }
+/* 中央カラム全体がスクロールするので、ここでは内部スクロールを持たせない。 */
 .atlas-scroll {
-  padding: 0 25px 24px;
-  flex: 1;
+  padding: 0 20px 16px;
+  flex: 1 0 auto;
+  min-height: 0;
 }
 .atlas-heading {
   display: flex;
@@ -669,8 +692,8 @@ textarea:focus-visible,
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--line);
-  padding: 7px 0 10px;
-  margin-bottom: 18px;
+  padding: 0 0 8px;
+  margin-bottom: 14px;
 }
 .atlas-heading > span:first-child {
   font-size: 10px;
@@ -690,7 +713,7 @@ textarea:focus-visible,
 .garment-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 25px 16px;
+  gap: 18px 14px;
 }
 .garment-card {
   display: flex;
@@ -770,7 +793,7 @@ textarea:focus-visible,
 .garment-name {
   font-size: 11px;
   font-weight: 500;
-  margin-top: 12px;
+  margin-top: 9px;
   line-height: 1.6;
   color: var(--ink);
 }
@@ -778,15 +801,16 @@ textarea:focus-visible,
   font-size: 7px;
   font-weight: 400;
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: 3px;
   letter-spacing: 0.2px;
 }
+/* 説明文の高さを予約しない。予約すると 1 行のアイテムの下に
+   常に空白が残り、グリッド全体が間延びして見えていた。 */
 .garment-description {
   font-size: 9px;
-  line-height: 1.9;
+  line-height: 1.75;
   color: var(--muted);
-  margin-top: 9px;
-  min-height: 34px;
+  margin-top: 6px;
 }
 .garment-meta {
   display: flex;
@@ -795,8 +819,8 @@ textarea:focus-visible,
   gap: 5px;
   width: 100%;
   border-top: 1px solid var(--line);
-  padding-top: 9px;
-  margin-top: 10px;
+  padding-top: 7px;
+  margin-top: 8px;
   font-size: 7px;
   color: var(--muted);
 }
@@ -818,7 +842,7 @@ textarea:focus-visible,
   gap: 7px;
   font-size: 8px;
   color: var(--muted);
-  padding: 30px 0 0;
+  padding: 16px 0 4px;
   text-align: center;
   line-height: 1.8;
 }
@@ -1284,9 +1308,11 @@ textarea:focus-visible,
   color: var(--muted);
   padding-top: 16px;
 }
+/* 資料タブも中央カラム全体のスクロールに載せる（内部スクロールなし）。 */
 .reference-explorer {
-  padding: 24px;
-  flex: 1;
+  padding: 14px 20px 16px;
+  flex: 1 0 auto;
+  min-height: 0;
 }
 .reference-controls {
   display: flex;
@@ -1516,20 +1542,24 @@ textarea:focus-visible,
   }
   .wardrobe-topline,
   .atlas-controls {
-    padding-left: 35px;
-    padding-right: 35px;
+    padding-left: 28px;
+    padding-right: 28px;
   }
   .atlas-scroll {
-    padding-left: 35px;
-    padding-right: 35px;
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+  .reference-explorer {
+    padding-left: 28px;
+    padding-right: 28px;
   }
   .category-tabs {
-    padding-left: 35px;
-    padding-right: 35px;
+    padding-left: 28px;
+    padding-right: 28px;
   }
   .garment-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 30px 25px;
+    gap: 22px 20px;
   }
   .garment-image {
     max-height: 270px;
@@ -1577,12 +1607,14 @@ textarea:focus-visible,
   .prompt-panel {
     overflow-y: auto;
   }
+  /* 中央カラムはここが唯一のスクロール。内側に入れ子のスクロールを作らない。 */
   .wardrobe-main {
     min-height: 0;
+    overflow-y: auto;
   }
   .atlas-scroll,
   .reference-explorer {
-    overflow-y: auto;
+    overflow: visible;
     min-height: 0;
   }
   .category-tabs,
@@ -2767,15 +2799,22 @@ body,
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.wardrobe-main,
+/* 中央カラム（outfit / 資料）はここが唯一のスクロール面。
+   左右のサイドバーは独立してスクロールする。 */
+.wardrobe-main {
+  background: var(--canvas);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
 .tryon-studio {
   background: var(--canvas);
   min-height: 0;
 }
 .atlas-scroll,
 .reference-explorer {
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
   min-height: 0;
 }
 .wardrobe-topline,

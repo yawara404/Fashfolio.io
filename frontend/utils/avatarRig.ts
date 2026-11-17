@@ -326,6 +326,8 @@ export interface TorsoRig {
 }
 
 export interface AvatarRig {
+  /** Cancels the body transform's anisotropy for rigid clothing details. */
+  detailScaleY?: number;
   heads: number;
   gender: MannequinGender;
   /** 1頭身のpx */

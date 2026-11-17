@@ -1,4 +1,5 @@
 import type { Garment } from "~/types/wardrobe";
+import { scheduleCloudSync, markCloudGarmentDeleted } from "~/utils/cloudStorage";
 export interface LocalGarment { item: Garment; image: Blob; }
 const DB_NAME = "fashfolio-local-wardrobe";
 function openDB(): Promise<IDBDatabase> {
@@ -30,6 +31,7 @@ export async function writeLocalGarment(record: LocalGarment) {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error || new Error("保存を中止しました"));
     });
+    scheduleCloudSync();
   } finally { db.close(); }
 }
 export async function deleteLocalGarment(id: string) {
@@ -41,5 +43,6 @@ export async function deleteLocalGarment(id: string) {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+    markCloudGarmentDeleted(id);
   } finally { db.close(); }
 }

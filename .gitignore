@@ -1,5 +1,15 @@
+# ローカル専用ドキュメント・検証成果物（GitHub には上げない）
+/docs/
+/PLAN.md
+/output/
+README.local
+README.local*
+
 node_modules/
 .nuxt/
+.nuxt-build/
+.nuxt-check/
+.nuxt-generate/
 .output/
 .env
 .env.*
@@ -7,10 +17,13 @@ node_modules/
 .venv/
 venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
 .pytest_cache/
+.mypy_cache/
 logs/
 .DS_Store
+Thumbs.db
 .data/
 .cache/
 dist/
@@ -46,3 +59,7 @@ frontend/scripts/remove_highlight.py
 
 # Generated from the installed onnxruntime-web version
 frontend/public/ort/
+
+# Local browser verification artifacts
+.playwright-cli/
+output/playwright/

@@ -49,7 +49,10 @@ def build_prompt(req: OutfitRequest, items: list[Garment]) -> dict:
     )
     labels = {c["id"]: c["name"] for c in CATEGORIES}
     tags = list(dict.fromkeys(tag for item in items for tag in item.tags))
-    descriptions = [f"{item.name_en}, {item.material_en} texture" for item in items]
+    descriptions = [f"{item.name_en}, {item.material_en} texture" + (
+        ", fabric color " + color_name(req.garment_colors[item.id][0]) + " " + req.garment_colors[item.id][0]
+        + ", trim color " + req.garment_colors[item.id][1] + ", detail color " + req.garment_colors[item.id][2]
+        if item.id in req.garment_colors else "") for item in items]
     positive = ", ".join(
         [
             style["en"].lower() + " fashion",
@@ -63,7 +66,7 @@ def build_prompt(req: OutfitRequest, items: list[Garment]) -> dict:
     lines = [
         f'{req.title}｜{style["name"]}の衣装設定',
         *[
-            f"・{labels[item.category]}：{item.name}（{item.material}）。{item.description}"
+            f"・{labels[item.category]}：{item.name}（{item.material}）。{item.description}" + (" 個別配色：" + " / ".join(req.garment_colors[item.id]) if item.id in req.garment_colors else "")
             for item in items
         ],
         "配色：" + " / ".join(colors) + "。ベース・主役・差し色の面積差をつける。",

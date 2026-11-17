@@ -24,4 +24,8 @@ async def integrations():
                 settings.danbooru_login and settings.danbooru_api_key
             ),
         },
+        "r2": {
+            "configured": settings.r2_configured,
+            "provider": "r2" if settings.r2_configured else "local",
+        },
     }

@@ -5,9 +5,12 @@ from app.core.config import BACKEND_DIR
 from app.models.outfit import Garment
 
 CATEGORIES = [
+    {"id": "inner", "name": "インナー上", "en": "INNER TOPS"},
+    {"id": "underwear", "name": "インナー下", "en": "INNER BOTTOMS"},
     {"id": "tops", "name": "トップス", "en": "TOPS"},
     {"id": "outer", "name": "アウター", "en": "OUTER"},
     {"id": "bottoms", "name": "ボトムス", "en": "BOTTOMS"},
+    {"id": "socks", "name": "靴下", "en": "SOCKS"},
     {"id": "shoes", "name": "シューズ", "en": "SHOES"},
     {"id": "head", "name": "帽子・ヘア小物", "en": "ACCESSORIES"},
     {"id": "bag", "name": "バッグ", "en": "BAGS"},
@@ -21,6 +24,12 @@ STYLES = [
     {"id": "fantasy", "name": "ファンタジー", "en": "Fantasy"},
 ]
 PALETTES = [
+    {
+        "id": "gray",
+        "name": "Soft gray",
+        "colors": ["#BFC1C6", "#F1F0ED", "#A9ADB5", "#92909C", "#4D4C57"],
+        "names": ["soft gray", "pearl white", "stone gray", "ash gray", "graphite gray"],
+    },
     {
         "id": "petal",
         "name": "Petal & mist",

@@ -1,12 +1,12 @@
 <template>
-  <aside class="outfit-panel">
+  <aside class="outfit-panel" :class="{ 'fitting-inspector': inspector }">
     <div class="section-heading">
       <div>
         <span class="eyebrow">01 / COORDINATE</span>
-        <h2>コーデを組む</h2>
+        <h2>{{ inspector ? "着用中の衣装" : "コーデを組む" }}</h2>
       </div>
       <span class="small-count"
-        >{{ wardrobe.selectedItems.length }}<span>/ 7</span></span
+        >{{ wardrobe.selectedItems.length }}<span>/ {{ wardrobe.catalog.categories.length }}</span></span
       >
     </div>
     <label class="field-label" for="outfit-name">コーデの名前</label
@@ -21,11 +21,11 @@
         v-for="category in wardrobe.catalog.categories"
         :key="category.id"
         class="outfit-part"
-        :class="{ active: wardrobe.activeCategory === category.id }"
+        :class="{ active: !avatar.browsingPoses && wardrobe.activeCategory === category.id }"
       >
         <button
           class="part-pick"
-          @click="wardrobe.activeCategory = category.id"
+          @click="avatar.browsingPoses = false; wardrobe.activeCategory = category.id"
         >
           <span class="part-thumb"
             ><img
@@ -40,6 +40,7 @@
           >
         </button>
         <div class="part-actions">
+          <button v-if="selected(category.id)" class="icon-button" :aria-label="`${category.name}の色を変更`" @click="editColor(category.id)"><Palette :size="13" /></button>
           <button
             class="icon-button"
             :class="{ locked: wardrobe.locks.includes(category.id) }"
@@ -63,7 +64,16 @@
           </button>
         </div>
       </div>
+      <div class="outfit-part pose-part" :class="{ active: avatar.browsingPoses }">
+        <button class="part-pick" aria-label="ポーズを選ぶ" :aria-expanded="inspector ? avatar.browsingPoses : posePickerOpen" @click="inspector ? openPoseLibrary() : posePickerOpen = !posePickerOpen">
+          <span class="part-thumb pose-part-thumb"><Accessibility :size="23" :stroke-width="1.3" /></span>
+          <span><span class="part-category">ポーズ</span><strong>{{ avatar.pose.name }}</strong></span>
+        </button>
+        <button class="icon-button" aria-label="ポーズを自然立ちに戻す" :disabled="avatar.pose.id === 'relax'" @click="avatar.setPose('relax')"><RotateCcw :size="12" /></button>
+      </div>
+      <PosePicker v-if="!inspector && posePickerOpen" :poses="studioPoses" />
     </div>
+    <div v-if="colorOpen && selected(wardrobe.activeCategory)" ref="colorEditor"><GarmentColorEditor :item="selected(wardrobe.activeCategory)!" /></div>
     <button
       class="button secondary random-button"
       :disabled="wardrobe.recommending"
@@ -114,6 +124,8 @@
         >
       </div>
     </div>
+    <details class="outfit-idea-disclosure" :open="!inspector">
+    <summary>衣装のアイデアを相談</summary>
     <div class="ai-assistant">
       <div class="section-label">
         <span><Sparkles :size="14" />アイデアから衣装を提案</span
@@ -162,9 +174,13 @@
         </p>
       </div>
     </div>
+    </details>
   </aside>
 </template>
 <script setup lang="ts">
+import { nextTick, onMounted, ref } from "vue";
+withDefaults(defineProps<{ inspector?: boolean }>(), { inspector: false });
+const emit = defineEmits<{ "select-pose": [] }>();
 import {
   Copy,
   Plus,
@@ -175,10 +191,26 @@ import {
   Dices,
   Sparkles,
   LoaderCircle,
+  Accessibility,
+  RotateCcw,
 } from "lucide-vue-next";
 import type { Category } from "~/types/wardrobe";
 import { useWardrobe } from "~/composables/useWardrobe";
+import { useAvatar } from "~/composables/useAvatar";
+import { studioPoses } from "~/data/studioPoses";
+import PosePicker from "~/components/PosePicker.vue";
+import GarmentColorEditor from "~/components/GarmentColorEditor.vue";
 const wardrobe = useWardrobe();
+const avatar = useAvatar();
+const posePickerOpen = ref(false);
+const colorOpen = ref(true);
+const colorEditor = ref<HTMLElement | null>(null);
+async function editColor(category: Category) {
+  wardrobe.activeCategory = category; colorOpen.value = true;
+  await nextTick(); colorEditor.value?.scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+onMounted(() => avatar.hydrate());
+function openPoseLibrary() { avatar.browsingPoses = true; emit("select-pose"); }
 async function copyPalette() {
   try {
     await navigator.clipboard.writeText(wardrobe.palette.join(", "));

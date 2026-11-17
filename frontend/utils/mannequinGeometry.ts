@@ -1,6 +1,7 @@
 import { resolvePose } from "~/utils/avatarRig";
 import { f } from "~/utils/avatarShapes";
 import { artworkBodyX, artworkBodyY } from "~/data/characterArtwork";
+import { resolveStudioPose } from "~/data/studioPoses";
 import type { AvatarRig, LimbKey, RigPoint, Side } from "~/utils/avatarRig";
 import type { MannequinGender } from "~/types/avatar";
 
@@ -135,9 +136,12 @@ export function characterHeadRig(rig: AvatarRig): AvatarRig {
 }
 
 /** The requested fixed 3.80 body space, shared by the skin and clothing. */
-export function characterGeometry(value: number, gender: MannequinGender) {
+export function characterGeometry(value: number, gender: MannequinGender, poseId: string = "relax") {
   const heads = Number.isFinite(value) ? Math.min(10, Math.max(4, value)) : 5;
-  const u = 612 / heads, oy = 42, sy = (heads - 1.15) / 3.8, sx = 1 + (sy - 1) * .42;
+  const u = 612 / heads, oy = 42, sy = (heads - 1.15) / 3.8;
+  // A modestly slimmer body keeps the soft original drawing and full-size face.
+  // Skin and clothing share this transform, including posed arms and footwear.
+  const sx = .92 * (1 + (sy - 1) * .42);
   const source = buildCharacterGeometry(5, gender).rig;
   const origin = source.crownY + 1.15 * source.unit;
   const nx = 100 / source.unit, ny = 380 / (source.groundY - origin);
@@ -166,7 +170,30 @@ export function characterGeometry(value: number, gender: MannequinGender) {
   }
   for (const key of Object.keys(r.segments) as (keyof typeof r.segments)[]) r.segments[key] *= ny;
   fitArtworkLandmarks(r);
+  r.detailScaleY = sx / sy;
+  const pose = resolveStudioPose(poseId);
+  if (pose.arms) {
+    r.pose = { ...r.pose, ...pose, arms: pose.arms };
+    for (const key of ["left", "right"] as const) {
+      const arm = r.arms[key], angles = pose.arms[key];
+      const next = (point: RigPoint, length: number, angle: number) => ({
+        x: point.x + arm.side * Math.sin(angle * Math.PI / 180) * length,
+        y: point.y + Math.cos(angle * Math.PI / 180) * length,
+      });
+      arm.mid = next(arm.root, arm.upper, angles.root);
+      arm.end = next(arm.mid, arm.lower, angles.mid);
+      r.hands[key].wrist = arm.end;
+      r.hands[key].tip = next(arm.end, r.hands[key].length, angles.mid);
+      r.hands[key].angle = angles.mid;
+    }
+  }
+  // Fit outstretched hands without changing the stage's centre or ground line.
+  const extent = Math.max(...Object.values(r.hands).map(hand => Math.abs(hand.tip.x) + hand.halfW + 18));
+  const stageWidth = Math.max(480, Math.ceil(extent * u * sx / 100 * 2));
+  // Extend the existing neck pixels past the body crop at every proportion.
+  const neckOverlap = Math.max(1.04, 1.15 + artworkBodyY(290) / 100 * sy + .02);
   return { rig: r, heads, unit: u, stroke: .015 / Math.sqrt(sx*sy), sx, sy,
+    stageX: 240 - stageWidth / 2, stageWidth, viewBox: `${240 - stageWidth / 2} 0 ${stageWidth} 720`, neckOverlap,
     origin: oy + 1.15*u, ground: 654,
     body: `translate(240 ${oy+1.15*u}) scale(${u*sx} ${u*sy})`,
     head: `translate(240 ${oy}) scale(${u})` };

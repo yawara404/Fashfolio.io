@@ -393,6 +393,9 @@ export function pantsPath(
 }
 
 const PALETTE_INDEX: Record<string, number> = {
+  inner: 1,
+  underwear: 1,
+  socks: 1,
   tops: 0,
   outer: 1,
   bottoms: 2,
@@ -429,7 +432,7 @@ export function buildGarment(
     if (path) layer.outline.push(path);
   };
 
-  if (category === "tops") {
+  if (category === "tops" || category === "inner") {
     const topHem = (
       { tee: 0.98, cardigan: 1.08, knit: 1.1, blouse: 1.08, lace: 1.08, sailor: 1.08 } as Record<
         string,
@@ -1219,7 +1222,7 @@ export function garmentImagePlacements(
     width: Math.max(unit * 0.2, width),
     height: Math.max(unit * 0.2, height),
   });
-  if (category === "tops") {
+  if (category === "tops" || category === "inner") {
     return [
       {
         key: "tops",

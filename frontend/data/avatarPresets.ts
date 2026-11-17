@@ -1,3 +1,4 @@
+import { resolveStudioPose } from "~/data/studioPoses";
 import type {
   AvatarConfig,
   AvatarPreset,
@@ -301,8 +302,8 @@ export const illustrationBackdrops: IllustrationBackdrop[] = [
   },
 ];
 
-/** Only the neutral girl/boy mannequins are used by the fitting studio. */
+/** Keep the established appearance; only supported fitting poses may change. */
 export function resolveAvatar(config?: Partial<AvatarConfig>): AvatarConfig {
   const gender = config?.gender === "boy" || config?.preset === "boy" ? "boy" : "girl";
-  return { ...mannequinTypes.find((item) => item.id === gender)!.config };
+  return { ...mannequinTypes.find((item) => item.id === gender)!.config, pose: resolveStudioPose(config?.pose).id };
 }

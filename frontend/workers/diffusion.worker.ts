@@ -4,6 +4,9 @@
 import * as ort from "onnxruntime-web/webgpu";
 import { Tokenizer } from "@huggingface/tokenizers";
 import { latentNoise, scaleLatents, eulerStep, decodePixels, removeWhiteBackdrop } from "../utils/diffusion";
+import { imageSchedule, imageLatents, imageEulerStep, imageTensor, toFloat16, fromFloat16 } from "../utils/img2img";
+import { VAE_SCALE } from "../utils/diffusion";
+import { chunkedModel, fileModel } from "../utils/modelCache";
 
 const MODEL = "https://huggingface.co/schmuell/sd-turbo-ort-web/resolve/ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1";
 const TOKENIZER = "https://huggingface.co/Xenova/clip-vit-base-patch16/resolve/342fdf2f67aded64d138ff074745fb4a5d2bba5f";
@@ -18,9 +21,28 @@ let tokenizer: Tokenizer | undefined;
 let busy = false;
 const send = (data: Record<string, unknown>) => self.postMessage(data);
 function status(message: string, progress?: number) { send({ type: "status", message, progress }); }
+async function fetchWeight(key:string,path:string,size:number) {
+  status(`${key}のモデルを準備中`);
+  try {
+    // Nuxt keeps one local disk copy. This also works when the browser caps
+    // per-origin storage below the size of the diffusion model.
+    const response=await fetch(`/model-assets/${key}?revision=ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1`);
+    if(!response.ok || !response.body) throw new Error("Local model unavailable");
+    const bytes=new Uint8Array(size),reader=response.body.getReader();let received=0,last=0;
+    try {while(true){const {done,value}=await reader.read();if(done) break;if(received+value.length>size) throw new Error("Model size mismatch");bytes.set(value,received);received+=value.length;if(performance.now()-last>200){status(`${key} ${Math.round(received/1e6)} / ${Math.round(size/1e6)} MB`,received/size);last=performance.now();}}}
+    finally{reader.releaseLock();}
+    if(received!==size) throw new Error("Model incomplete");
+    return bytes.buffer;
+  } catch {return fetchCached(`${MODEL}/${path}`,key,size);}
+}
 async function fetchCached(url: string, label: string, size = 0) {
   let cache: Cache | undefined;
   try { cache = await caches.open(CACHE); } catch { /* Private mode can disable Cache Storage. */ }
+  if (size > 128 * 1024 * 1024) {
+    const progress=(received:number,total:number,saving?:boolean)=>status(`${label} ${Math.round(received/1e6)} / ${Math.round(total/1e6)} MB${saving ? ' · 保存中' : ''}`,received/total);
+    const warning=()=>send({type:"warning",message:"モデルを保存できませんでした。次回は再取得が必要です。"});
+    return await fileModel(url,size,cache,progress,warning) ?? chunkedModel(url,size,cache,progress,warning);
+  }
   const cached = await cache?.match(url);
   if (cached) { status(label + "をキャッシュから読み込み中"); return cached.arrayBuffer(); }
   const response = await fetch(url);
@@ -63,7 +85,7 @@ async function prepare() {
   tokenizer = new Tokenizer(tokenizerJSON, config);
   for (const definition of definitions) {
     if (sessions[definition.key]) continue;
-    const bytes = await fetchCached(`${MODEL}/${definition.path}`, definition.key, definition.size);
+    const bytes = await fetchWeight(definition.key,definition.path,definition.size);
     status(`${definition.key}をGPUに準備中`);
     sessions[definition.key] = await ort.InferenceSession.create(bytes, {
       executionProviders: ["webgpu"], enableMemPattern: false, enableCpuMemArena: false,
@@ -73,31 +95,54 @@ async function prepare() {
     });
   }
 }
+async function prepareEncoder() {
+  await prepare();
+  if (sessions.encoder) return;
+  const bytes = await fetchWeight("encoder","vae_encoder/model.onnx",68430468);
+  sessions.encoder = await ort.InferenceSession.create(bytes, {
+    executionProviders: ["webgpu"], enableMemPattern: false, enableCpuMemArena: false,
+    freeDimensionOverrides: { batch_size: 1, num_channels: 3, height: 512, width: 512 },
+    extra: { session: { disable_prepacking: "1", use_device_allocator_for_initializers: "1", use_ort_model_bytes_directly: "1", use_ort_model_bytes_for_initializers: "1" } },
+  });
+}
+function input(session: string, name: string, data: Float32Array | Int32Array, dimensions: number[]) {
+  const metadata = sessions[session]!.inputMetadata[sessions[session]!.inputNames.indexOf(name)];
+  const type = metadata?.isTensor ? metadata.type : undefined;
+  if (type === "float16") return new ort.Tensor("float16", toFloat16(Float32Array.from(data)), dimensions);
+  if (type === "int64") return new ort.Tensor("int64", BigInt64Array.from(data, v => BigInt(v)), dimensions);
+  if (type === "int32") return new ort.Tensor("int32", Int32Array.from(data), dimensions);
+  return new ort.Tensor("float32", Float32Array.from(data), dimensions);
+}
+async function floats(tensor: ort.Tensor) {
+  const data = await tensor.getData();
+  const view = data as Float32Array | Uint16Array;
+  return tensor.type === "float16" ? fromFloat16(new Uint16Array(view.buffer, view.byteOffset, view.byteLength / 2)) : Float32Array.from(data as Float32Array);
+}
 async function generate(prompt: string, seed: number, cutout: boolean) {
-  if (!tokenizer || !sessions.vae) throw new Error("先にモデルを準備してください。");
+  await prepare();
   const tensors = new Set<ort.Tensor>();
   const own = <T extends ort.Tensor>(t: T): T => { tensors.add(t); return t; };
   const started = performance.now();
   try {
     status("1 / 3 衣装の説明を読み取り中");
-    const encoded = tokenizer.encode(prompt).ids.slice(0, 77);
+    const encoded = tokenizer!.encode(prompt).ids.slice(0, 77);
     if (encoded.length === 77) encoded[76] = 49407;
     const ids = new Int32Array(77); ids.set(encoded); // SD-Turbo CLIP pad token is 0.
-    const text = await sessions.text!.run({ input_ids: own(new ort.Tensor("int32", ids, [1, 77])) });
+    const text = await sessions.text!.run({ input_ids: own(input("text", "input_ids", ids, [1, 77])) });
     const hidden = own(text.last_hidden_state!);
     status("2 / 3 この端末のGPUで衣装を描画中");
     const noise = latentNoise(seed);
     const output = await sessions.unet!.run({
-      sample: own(new ort.Tensor("float32", scaleLatents(noise), [1, 4, 64, 64])),
-      timestep: own(new ort.Tensor("int64", BigInt64Array.from([999n]), [1])),
+      sample: own(input("unet", "sample", scaleLatents(noise), [1, 4, 64, 64])),
+      timestep: own(input("unet", "timestep", Int32Array.from([999]), [1])),
       encoder_hidden_states: hidden,
     });
     const prediction = own(output.out_sample!);
-    const predictionData = await prediction.getData();
+    const predictionData = await floats(prediction);
     status("3 / 3 色と輪郭を仕上げ中");
-    const decoded = await sessions.vae!.run({ latent_sample: own(new ort.Tensor("float32", eulerStep(noise, predictionData as Float32Array), [1, 4, 64, 64])) });
+    const decoded = await sessions.vae!.run({ latent_sample: own(input("vae", "latent_sample", eulerStep(noise, predictionData), [1, 4, 64, 64])) });
     const sample = own(decoded.sample!);
-    const rgba = decodePixels(await sample.getData() as Float32Array);
+    const rgba = decodePixels(await floats(sample));
     const { pixels, crop } = cutout ? removeWhiteBackdrop(rgba, 512, 512) : { pixels: rgba, crop: { x: 0, y: 0, width: 512, height: 512 } };
     const full = new OffscreenCanvas(512, 512);
     full.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(pixels), 512, 512), 0, 0);
@@ -107,13 +152,68 @@ async function generate(prompt: string, seed: number, cutout: boolean) {
     send({ type: "result", image, seed, duration: Math.round((performance.now() - started) / 1000) });
   } finally { for (const t of tensors) t.dispose(); }
 }
-self.onmessage = async (event: MessageEvent<{ type: string; prompt: string; seed: number; cutout: boolean }>) => {
-  if (busy) return;
-  busy = true;
+async function renderTryOn(prompt: string, seed: number, reference: Blob, mask: Blob) {
+  await prepareEncoder();
+  const tensors = new Set<ort.Tensor>();
+  const own = <T extends ort.Tensor>(tensor: T): T => { tensors.add(tensor); return tensor; };
+  const started = performance.now();
   try {
-    if (event.data.type === "prepare") { await prepare(); send({ type: "ready" }); }
-    else if (event.data.type === "generate") await generate(event.data.prompt, event.data.seed, event.data.cutout);
-  } catch (error) {
-    send({ type: "error", message: error instanceof Error ? error.message : String(error) });
-  } finally { busy = false; }
+    const canvas = new OffscreenCanvas(512, 512), ctx = canvas.getContext("2d")!;
+    const bitmap = await createImageBitmap(reference);
+    ctx.drawImage(bitmap, 0, 0, 512, 512); bitmap.close();
+    const original = ctx.getImageData(0, 0, 512, 512).data;
+    const maskBitmap = await createImageBitmap(mask);
+    ctx.clearRect(0, 0, 512, 512); ctx.drawImage(maskBitmap, 0, 0, 512, 512); maskBitmap.close();
+    const maskPixels = ctx.getImageData(0, 0, 512, 512).data;
+    status("1 / 4 元の服の色・柄とポーズを読み取り中");
+    const encoded = await sessions.encoder!.run({ sample: own(input("encoder", "sample", imageTensor(original), [1, 3, 512, 512])) });
+    const source = await floats(own(encoded.latent_sample!));
+    const ids = new Int32Array(77), tokens = tokenizer!.encode(prompt).ids.slice(0, 77);
+    if (tokens.length === 77) tokens[76] = 49407;
+    ids.set(tokens);
+    const text = await sessions.text!.run({ input_ids: own(input("text", "input_ids", ids, [1, 77])) });
+    const hidden = own(text.last_hidden_state!);
+    const noise = latentNoise(seed), schedule = imageSchedule();
+    let latents = imageLatents(source, noise, schedule[0]!.sigma);
+    for (const [i, step] of schedule.entries()) {
+      status(`2 / 4 ポーズに合わせて服を描き直し中（${i + 1}/${schedule.length}）`, (i + 1) / schedule.length);
+      const feeds = { sample: own(input("unet", "sample", latents.map(v => v / Math.sqrt(step.sigma ** 2 + 1)), [1, 4, 64, 64])),
+        timestep: own(input("unet", "timestep", Int32Array.from([step.time]), [1])), encoder_hidden_states: hidden };
+      const output = await sessions.unet!.run(feeds);
+      const prediction = own(output.out_sample!);
+      latents = imageEulerStep(latents, await floats(prediction), step.sigma, step.next);
+      // Re-noise the unchanged context at each step, so it conditions the clothes
+      // without allowing the face, hands, or hair to drift between denoise steps.
+      const context = imageLatents(source, noise, step.next);
+      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+        let alpha = 0;
+        for (let dy = 0; dy < 8; dy++) for (let dx = 0; dx < 8; dx++) alpha += maskPixels[((y * 8 + dy) * 512 + x * 8 + dx) * 4 + 3]!;
+        const weight = alpha / (64 * 255);
+        for (let c = 0; c < 4; c++) { const index = c * 4096 + y * 64 + x; latents[index] = latents[index]! * weight + context[index]! * (1 - weight); }
+      }
+    }
+    status("3 / 4 服のしわと布の落ち方を仕上げ中");
+    const decoded = await sessions.vae!.run({ latent_sample: own(input("vae", "latent_sample", latents.map(v => v / VAE_SCALE), [1, 4, 64, 64])) });
+    const rgba = decodePixels(await floats(own(decoded.sample!)));
+    // Only garment pixels are returned. The app always keeps the original face,
+    // hair, skin and background; they are never replaced by generated pixels.
+    for (let i = 0; i < 512 * 512; i++) rgba[i * 4 + 3] = maskPixels[i * 4 + 3]!;
+    status("4 / 4 生成した服を保存中");
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(rgba), 512, 512), 0, 0);
+    const image = await canvas.convertToBlob({ type: "image/png" });
+    send({ type: "tryon-result", image, seed, duration: Math.round((performance.now() - started) / 1000) });
+  } finally { for (const tensor of tensors) tensor.dispose(); }
+}
+let queue = Promise.resolve();
+self.onmessage = (event: MessageEvent<{ type: string; prompt: string; seed: number; cutout: boolean; reference: Blob; mask: Blob }>) => {
+  queue = queue.then(async () => {
+    busy = true;
+    try {
+      if (event.data.type === "prepare") { await prepare(); send({ type: "ready" }); }
+      else if (event.data.type === "generate") await generate(event.data.prompt, event.data.seed, event.data.cutout);
+      else if (event.data.type === "tryon") await renderTryOn(event.data.prompt, event.data.seed, event.data.reference, event.data.mask);
+    } catch (error) {
+      send({ type: "error", message: error instanceof Error ? error.message : String(error) });
+    } finally { busy = false; }
+  });
 };

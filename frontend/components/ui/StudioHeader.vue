@@ -34,6 +34,7 @@
     <div class="studio-header-actions">
       <button
         class="saved-coordinates-button"
+        :aria-label="`保存したコーデを開く（${savedCount}件）`"
         type="button"
         @click="$emit('open-saved')"
       >
@@ -99,15 +100,15 @@ const mobileMenu = ref<HTMLDialogElement | null>(null);
 const modes = [
   {
     key: "outfit",
-    label: "outfit",
+    label: "衣装を選ぶ",
     to: "/",
     icon: Shirt,
     description: "衣装・配色とプロンプトを組み立てる",
   },
   {
     key: "try-on",
-    label: "try-on",
-    to: "/try-on",
+    label: "試着・キャンバス",
+    to: "/tryon",
     icon: Accessibility,
     description: "アニメ素体で頭身・丈・シルエットを確認",
   },
@@ -133,7 +134,7 @@ function closeOnBackdrop(event: MouseEvent) {
   gap: 14px;
   height: 56px;
   min-height: 56px;
-  padding: 0 20px;
+  padding: 0 24px;
   background: var(--paper);
   border-bottom: 1px solid var(--line);
   z-index: 40;
@@ -157,13 +158,13 @@ function closeOnBackdrop(event: MouseEvent) {
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 11px;
+  border-radius: 9px;
   background: var(--accent);
   color: var(--accent-fg);
   flex-shrink: 0;
 }
 .studio-brand-name {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.4px;
   line-height: 1.1;
@@ -174,7 +175,7 @@ function closeOnBackdrop(event: MouseEvent) {
 }
 .studio-brand-name small {
   display: block;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.2px;
   font-weight: 400;
   color: var(--muted);
@@ -182,12 +183,12 @@ function closeOnBackdrop(event: MouseEvent) {
 }
 .studio-nav {
   display: grid;
-  grid-template-columns: repeat(2, 112px);
+  grid-template-columns: 112px 148px;
   gap: 2px;
   padding: 4px;
-  border-radius: 12px;
-  border: 1px solid var(--line-strong);
-  background: var(--raised);
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: var(--canvas);
   justify-self: center;
 }
 .studio-nav > a {
@@ -211,9 +212,9 @@ function closeOnBackdrop(event: MouseEvent) {
   color: var(--accent);
 }
 .studio-nav > a.active {
-  background: var(--accent);
-  color: var(--accent-fg);
-  box-shadow: 0 1px 2px #0002;
+  background: var(--paper);
+  color: var(--accent);
+  box-shadow: 0 1px 4px #20242e12;
 }
 .studio-header-actions {
   display: flex;
@@ -231,10 +232,10 @@ function closeOnBackdrop(event: MouseEvent) {
   min-height: 32px;
   padding: 7px 10px;
   border: 1px solid var(--line-strong);
-  border-radius: 9px;
-  background: var(--raised);
+  border-radius: 7px;
+  background: var(--paper);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 .saved-coordinates-button:hover,
@@ -331,7 +332,7 @@ function closeOnBackdrop(event: MouseEvent) {
     display: none;
   }
   .studio-nav {
-    grid-template-columns: repeat(2, 100px);
+    grid-template-columns: 106px 140px;
   }
   .studio-header {
     padding: 0 16px;
@@ -343,6 +344,8 @@ function closeOnBackdrop(event: MouseEvent) {
     justify-content: space-between;
     padding: 0 12px;
     gap: 8px;
+    height: 58px;
+    min-height: 58px;
   }
   .studio-nav {
     display: none;
@@ -351,7 +354,7 @@ function closeOnBackdrop(event: MouseEvent) {
     display: flex;
   }
   .studio-brand-name {
-    font-size: 14px;
+    font-size: 16px;
   }
   .studio-brand-name small {
     display: none;

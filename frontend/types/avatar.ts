@@ -9,7 +9,8 @@ export type BlushStyle = "none" | "hatch" | "oval" | "line";
 /** 体型。幅の倍率だけを変え、骨格の関節位置は変えない。 */
 export type BodyType = "soft" | "slim" | "round";
 /** ポーズ。腕・脚のボーン角度プリセット。 */
-export type PoseId = "relax" | "wave" | "cheer" | "pocket" | "behind";
+export type StudioPoseId = "relax" | "t-pose";
+export type PoseId = StudioPoseId | "wave" | "cheer" | "pocket" | "behind";
 
 export type WinkSide = "none" | "left" | "right";
 

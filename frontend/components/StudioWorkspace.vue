@@ -9,15 +9,20 @@
       <div>
         <div class="intro-eyebrow"><span />FASHFOLIO STUDIO</div>
         <h1 v-if="mode === 'outfit'">衣装・配色を組み立てる</h1>
-        <h1 v-else>少年・少女でコーデを確認</h1>
+        <h1 v-else>試着・キャンバス</h1>
         <p v-if="mode === 'outfit'">
-          パーツを選び、作画設定とAIプロンプトをまとめる。
+          衣装と色を組み合わせて、キャラクターの装いを考える。
         </p>
         <p v-else>
-          デフォルメした少年・少女の頭身を切り替えて、衣装のバランスを見比べる。
+          頭身・丈・配色を見比べて、描く前のイメージを整える。
         </p>
       </div>
       <div class="intro-right">
+        <span class="draft-status" role="status">{{ wardrobe.draftStatus }}</span>
+        <div class="coordinate-history" role="group" aria-label="コーデの編集履歴">
+          <button class="icon-button" :disabled="!wardrobe.canUndo" aria-label="コーデの変更を元に戻す" title="元に戻す" @click="wardrobe.undo()"><Undo2 :size="15" /></button>
+          <button class="icon-button" :disabled="!wardrobe.canRedo" aria-label="コーデの変更をやり直す" title="やり直す" @click="wardrobe.redo()"><Redo2 :size="15" /></button>
+        </div>
         <span class="tool-badge"
           ><PencilRuler :size="13" />絵師のためのコーデプロンプトメーカー</span
         ><button
@@ -40,34 +45,40 @@
     <div
       v-else
       class="studio-workspace"
-      :class="{ 'tryon-workspace': mode === 'try-on' }"
+      :class="[{ 'tryon-workspace': mode === 'try-on' }, `mobile-pane-${mobilePane}`]"
       :aria-busy="wardrobe.loading"
     >
-      <OutfitPanel />
-      <TryOnStudio v-if="mode === 'try-on'" />
+      <TryOnWardrobe v-if="mode === 'try-on'" @generate="generationOpen = true" @add-to-canvas="fittingStudio?.addGarment($event); mobilePane = 'main'" />
+      <OutfitPanel v-else />
+      <TryOnStudio v-if="mode === 'try-on'" ref="fittingStudio" />
       <main v-else class="wardrobe-main">
         <div class="wardrobe-topline">
           <div>
             <span class="eyebrow">02 / WARDROBE LIBRARY</span>
-            <h2>服を選ぶ、想像がふくらむ。</h2>
+            <h2>衣装ライブラリ <span class="library-count" :aria-label="`${wardrobe.catalog.items.length}点の衣装`">{{ wardrobe.catalog.items.length }}</span></h2>
           </div>
-          <div class="view-switch">
-            <button
-              :class="{ active: view === 'atlas' }"
-              :aria-pressed="view === 'atlas'"
-              @click="view = 'atlas'"
-            >
-              <LayoutGrid :size="14" />パーツ図鑑</button
-            ><button
-              :class="{ active: view === 'references' }"
-              :aria-pressed="view === 'references'"
-              @click="view = 'references'"
-            >
-              <Search :size="14" />資料を探す
+          <div class="wardrobe-actions">
+            <div class="view-switch">
+              <button
+                :class="{ active: view === 'atlas' }"
+                :aria-pressed="view === 'atlas'"
+                @click="view = 'atlas'"
+              >
+                <LayoutGrid :size="14" />パーツ図鑑
+              </button>
+              <button
+                :class="{ active: view === 'references' }"
+                :aria-pressed="view === 'references'"
+                @click="view = 'references'"
+              >
+                <Search :size="14" />資料を探す
+              </button>
+            </div>
+            <button class="button lab-trigger" @click="generationOpen = true">
+              <Plus :size="13" />衣装を生成
             </button>
           </div>
         </div>
-        <div class="clothing-lab-toolbar"><span><Sparkles :size="13" />選んで、着せ替えて、描く。</span><button class="button lab-trigger" @click="generationOpen = true"><Plus :size="13" />この部位の衣装を生成</button></div>
         <nav class="category-tabs" aria-label="衣装の部位">
           <button
             v-for="category in wardrobe.catalog.categories"
@@ -158,8 +169,13 @@
         >
         <ReferenceExplorer v-else />
       </main>
-      <TryOnWardrobe v-if="mode === 'try-on'" @generate="generationOpen = true" /><PromptPanel v-else />
+      <OutfitPanel v-if="mode === 'try-on'" inspector @select-pose="mobilePane = 'details'" /><PromptPanel v-else />
     </div>
+    <nav class="mobile-pane-nav" aria-label="作業パネル">
+      <button :class="{ active: mobilePane === 'coordinate' }" :aria-pressed="mobilePane === 'coordinate'" @click="mobilePane = 'coordinate'"><Palette :size="18" /><span>コーデ・配色</span></button>
+      <button :class="{ active: mobilePane === 'main' }" :aria-pressed="mobilePane === 'main'" @click="mobilePane = 'main'"><component :is="mode === 'outfit' ? Shirt : PencilRuler" :size="18" /><span>{{ mode === 'outfit' ? '衣装ライブラリ' : '試着・キャンバス' }}</span></button>
+      <button :class="{ active: mobilePane === 'details' }" :aria-pressed="mobilePane === 'details'" @click="mobilePane = 'details'"><component :is="mode === 'outfit' ? FileText : Layers2" :size="18" /><span>{{ mode === 'outfit' ? '作画メモ・出力' : '衣装を選ぶ' }}</span></button>
+    </nav>
     <footer class="app-footer">
       <span
         ><i
@@ -170,7 +186,7 @@
             ? "Ollama connected"
             : "Local prompt studio"
         }}<span class="footer-divider">/</span
-        >{{ wardrobe.catalog.items.length }} wardrobe pieces</span
+        >{{ wardrobe.catalog.items.length }} wardrobe pieces<template v-if="cloudStorageState.configured"><span class="footer-divider">/</span>{{ cloudStorageState.message }}</template></span
       ><button @click="wardrobe.refreshIntegrations()">
         接続状態を更新<RotateCw :size="10" /></button
       ><span>Fashfolio & Reflens — tools for your creative process.</span>
@@ -202,6 +218,10 @@
           <X :size="20" />
         </button>
       </div>
+      <div class="cloud-storage-summary" role="status">
+        <Cloud :size="16" /><span>{{ cloudStorageState.message }}</span>
+        <button v-if="cloudStorageState.configured" class="text-link" :disabled="cloudStorageState.phase === 'syncing'" @click="flushCloudWorkspace()">{{ cloudStorageState.phase === 'error' ? '再試行' : '今すぐ同期' }}</button>
+      </div>
       <p v-if="!wardrobe.saved.length" class="saved-empty">
         気に入った組み合わせを保存すると、ここから呼び出せます。
       </p>
@@ -224,7 +244,7 @@
               :style="{ background: color }" /></span
           ><strong>{{ outfit.name }}</strong
           ><span
-            >{{ outfit.item_ids.length }} parts ·
+            >{{ outfit.item_ids.length }} parts · {{ outfit.gender === 'boy' ? '少年' : outfit.gender === 'girl' ? '少女' : '' }} {{ outfit.heads ? `${outfit.heads}頭身 · ` : '' }}
             {{ new Date(outfit.createdAt).toLocaleDateString("ja-JP") }}</span
           ></button
         ><button
@@ -243,10 +263,12 @@
 </template>
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { Sparkles, Plus } from "lucide-vue-next";
+import { Plus } from "lucide-vue-next";
 import StudioHeader from "~/components/ui/StudioHeader.vue";
 import {
   Shirt,
+  Palette,
+  FileText,
   PencilRuler,
   Bookmark,
   ServerOff,
@@ -262,18 +284,27 @@ import {
   Trash2,
   HardDrive,
   Layers2,
+  Undo2,
+  Redo2,
+  Cloud,
   Footprints,
   Glasses,
   ShoppingBag,
   Gem,
 } from "lucide-vue-next";
+import TryOnStudio from "~/components/TryOnStudio.vue";
 import type { Category } from "~/types/wardrobe";
 import { useWardrobe } from "~/composables/useWardrobe";
+import { cloudStorageState, flushCloudWorkspace } from "~/utils/cloudStorage";
 defineProps<{ mode: "outfit" | "try-on" }>();
 const wardrobe = useWardrobe();
+const mobilePane = ref<"coordinate" | "main" | "details">("main");
 const view = ref<"atlas" | "references">("atlas");
 const savedDialog = ref<HTMLDialogElement | null>(null);
 const icons = {
+  underwear: LayoutGrid,
+  socks: Footprints,
+  inner: Shirt,
   tops: Shirt,
   outer: Layers2,
   bottoms: LayoutGrid,
@@ -298,6 +329,7 @@ function closeOnBackdrop(event: MouseEvent) {
   )
     dialog.close();
 }
+const fittingStudio = ref<InstanceType<typeof TryOnStudio> | null>(null);
 const generationOpen = ref(false);
 onMounted(() => {
   if (!wardrobe.catalog.items.length) wardrobe.initialize();

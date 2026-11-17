@@ -35,6 +35,7 @@ export function useIllustrationExport() {
   async function renderPng(
     svg: SVGSVGElement | null,
     width = 1600,
+    transparent = false,
   ) {
     if (!svg) throw new Error("イラストを準備できませんでした。もう一度お試しください。");
     const size = illustrationSize(svg.getAttribute("viewBox"), width);
@@ -79,8 +80,7 @@ export function useIllustrationExport() {
       canvas.height = height;
       const context = canvas.getContext("2d");
       if (!context) throw new Error("この端末ではPNGを書き出せませんでした。");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, width, height);
+      if (!transparent) { context.fillStyle = "#ffffff"; context.fillRect(0, 0, width, height); }
       context.drawImage(image, 0, 0, width, height);
 
       const blob = await new Promise<Blob>((resolve, reject) =>
@@ -144,5 +144,5 @@ export function useIllustrationExport() {
     }
   }
 
-  return { exporting, error, copied, exportPng, copyPng };
+  return { exporting, error, copied, exportPng, copyPng, renderPng };
 }

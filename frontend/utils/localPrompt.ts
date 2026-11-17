@@ -12,8 +12,8 @@ export function localPrompt(items: Garment[], palette: string[], title: string, 
   });
   const tags = [...new Set(items.flatMap((i) => i.tags))];
   return {
-    brief_ja: [title + "｜" + (definition?.name || style) + "の衣装設定", ...items.map((i) => `・${i.name}（${i.material}）：${i.description}`), "配色：" + palette.join(" / "), ...(notes.trim() ? ["作画メモ：" + notes.trim()] : [])].join("\n"),
-    positive: [(definition?.en || style) + " fashion", "full body outfit reference", ...items.map((i) => `${i.name_en}, ${i.material_en} texture`), ...tags.map((t) => t.replaceAll("_", " ")), "color palette: " + names.join(", "), "clear garment construction"].join(", "),
+    brief_ja: [title + "｜" + (definition?.name || style) + "の衣装設定", ...items.map((i) => `・${i.name}（${i.material}）：${i.description}${i.paint ? ` 個別配色：${i.paint.join(" / ")}` : ""}`), "配色：" + palette.join(" / "), ...(notes.trim() ? ["作画メモ：" + notes.trim()] : [])].join("\n"),
+    positive: [(definition?.en || style) + " fashion", "full body outfit reference", ...items.map((i) => `${i.name_en}, ${i.material_en} texture${i.paint ? `, fabric color ${i.paint[0]}, trim color ${i.paint[1]}, detail color ${i.paint[2]}` : ""}`), ...tags.map((t) => t.replaceAll("_", " ")), "color palette: " + names.join(", "), "clear garment construction"].join(", "),
     negative: "blurry clothing details, inconsistent garment construction, missing accessories, distorted buttons, text, watermark",
     references: items.map((i) => ({ item_id: i.id, label: i.name, danbooru: "https://danbooru.donmai.us/posts?" + new URLSearchParams({ tags: `${i.tags[0] || "clothes"} rating:g` }), pinterest: "https://www.pinterest.com/search/pins/?" + new URLSearchParams({ q: i.name_en + " outfit reference" }) })),
     tags, palette: [...palette], engine: "template", model: null, notice: null,

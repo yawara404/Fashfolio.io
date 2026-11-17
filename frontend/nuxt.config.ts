@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // Checks and production builds must never replace a running editor's dev manifest.
+  buildDir: process.env.NUXT_BUILD_DIR || ".nuxt",
+  ignore: [".nuxt-build/**", ".nuxt-check/**", ".nuxt-generate/**", ".cache/**"],
   runtimeConfig: {
     apiBase: "http://127.0.0.1:8085",
     public: {
@@ -7,12 +10,13 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
+    "/try-on": { redirect: "/tryon" },
     "/api/**": { proxy: "http://127.0.0.1:8085/api/**" },
   },
   compatibilityDate: "2024-04-03",
   devtools: { enabled: false },
   modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
-  css: ["~/assets/css/main.css", "~/assets/css/dress-up.css", "~/assets/css/avatar.css"],
+  css: ["~/assets/css/main.css", "~/assets/css/dress-up.css", "~/assets/css/avatar.css", "~/assets/css/studio.css", "~/assets/css/canvas.css"],
   app: {
     head: {
       htmlAttrs: { lang: "ja" },

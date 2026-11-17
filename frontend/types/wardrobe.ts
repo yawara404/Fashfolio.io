@@ -1,10 +1,14 @@
+import type { StudioPoseId } from "~/types/avatar";
+
 export type Category =
-  "tops" | "outer" | "bottoms" | "shoes" | "head" | "bag" | "jewelry";
+  "inner" | "underwear" | "tops" | "outer" | "bottoms" | "socks" | "shoes" | "head" | "bag" | "jewelry";
+export type PresetAudience = "mens" | "womens" | "unisex";
 export interface Garment {
   id: string;
   name: string;
   name_en: string;
   category: Category;
+  audience?: PresetAudience;
   kind: string;
   description: string;
   material: string;
@@ -12,6 +16,8 @@ export interface Garment {
   tags: string[];
   styles: string[];
   colors: string[];
+  /** User paint slots; never replace the source colors used to identify SVG fills. */
+  paint?: string[];
   source?: "local-diffusion";
   baseId?: string;
   imageUrl?: string;
@@ -66,6 +72,7 @@ export interface Integrations {
   };
   pinterest: { configured: boolean; scope: string };
   danbooru: { configured: boolean; authenticated: boolean };
+  r2?: { configured: boolean; provider: "r2" | "local" };
 }
 export interface ReferenceImage {
   id: string;
@@ -92,4 +99,10 @@ export interface SavedOutfit {
   style: string;
   notes: string;
   createdAt: string;
+  pose?: StudioPoseId;
+  gender?: "girl" | "boy";
+  heads?: number;
+  garmentColors?: Record<string, string[]>;
+  paletteColors?: boolean;
+  locks?: Category[];
 }
