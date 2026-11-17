@@ -5,6 +5,7 @@ import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick } from "vue";
 import LocalGenerationDialog from "../components/LocalGenerationDialog.vue";
+import MannequinPreview from "../components/MannequinPreview.vue";
 import { useWardrobe } from "../composables/useWardrobe";
 import { useDeviceGeneration } from "../composables/useDeviceGeneration";
 import { latentNoise, eulerStep, decodePixels, removeWhiteBackdrop, SIGMA, VAE_SCALE } from "../utils/diffusion";
@@ -153,6 +154,93 @@ describe("on-device diffusion processing", () => {
     wrapper.unmount();
   });
 
+  it("guides English prompts with suggestion chips and derives a preset theme from the coordinate name", async () => {
+    setActivePinia(createPinia());
+    const wardrobe = useWardrobe();
+    wardrobe.catalog = JSON.parse(JSON.stringify(catalog)) as Catalog;
+    wardrobe.style = "girly";
+    wardrobe.activeCategory = "tops";
+    wardrobe.selections = { tops: "ribbon-blouse", bottoms: "pleated-skirt", shoes: "mary-janes" };
+    const device = useDeviceGeneration();
+    device.supported = true;
+    vi.spyOn(device, "detect").mockResolvedValue(undefined);
+
+    const wrapper = mount(LocalGenerationDialog, { props: { open: true } });
+    await nextTick();
+
+    const description = wrapper.find<HTMLTextAreaElement>("#generation-description");
+    await wrapper.find<HTMLInputElement>("#generation-name").setValue("春のカフェのブラウス");
+    await nextTick();
+    expect(description.element.value).toContain("spring");
+    expect(description.element.value).toContain("cafe");
+    const puff = wrapper
+      .findAll(".prompt-guide-chips button")
+      .find((button) => button.text().includes("パフスリーブ"));
+    expect(puff).toBeDefined();
+    await puff!.trigger("click");
+    expect(description.element.value).toContain("puff sleeves");
+    expect(wrapper.find("#generation-preset").exists()).toBe(true);
+
+    await wrapper
+      .findAll(".generation-mode-tabs button")
+      .find((button) => button.text().includes("1コーデまとめて生成"))!
+      .trigger("click");
+    await nextTick();
+    await wrapper.find<HTMLInputElement>("#batch-outfit-name").setValue("春のカフェ");
+    await nextTick();
+    const theme = wrapper.find<HTMLTextAreaElement>("#batch-theme");
+    expect(theme.element.value).toContain("spring");
+    expect(theme.element.value).toContain("cafe");
+    wrapper.unmount();
+  });
+
+  it("swaps the dictionary preview for an Ollama translation when integrations are ready", async () => {
+    setActivePinia(createPinia());
+    const wardrobe = useWardrobe();
+    wardrobe.catalog = JSON.parse(JSON.stringify(catalog)) as Catalog;
+    wardrobe.activeCategory = "tops";
+    wardrobe.selections = { tops: "ribbon-blouse" };
+    wardrobe.integrations = {
+      ollama: { connected: true, ready: true, model: "gemma3:4b", models: ["gemma3:4b"] },
+      pinterest: { configured: false, scope: "" },
+      danbooru: { configured: false, authenticated: false },
+    };
+    const device = useDeviceGeneration();
+    device.supported = true;
+    vi.spyOn(device, "detect").mockResolvedValue(undefined);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === "/api/integrations") return wardrobe.integrations;
+      if (url === "/api/translate-prompt") {
+        return {
+          positive: "spring, cafe, ollama blouse",
+          untranslated: [],
+          engine: "ollama",
+          model: "gemma3:4b",
+          notice: null,
+        };
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal("$fetch", fetchMock);
+    vi.useFakeTimers();
+    try {
+      const wrapper = mount(LocalGenerationDialog, { props: { open: true } });
+      await nextTick();
+      await wrapper.find<HTMLInputElement>("#generation-name").setValue("春のカフェのブラウス");
+      await nextTick();
+      await vi.advanceTimersByTimeAsync(1000);
+      await nextTick();
+      const description = wrapper.find<HTMLTextAreaElement>("#generation-description");
+      expect(description.element.value).toContain("ollama blouse");
+      expect(wrapper.find(".prompt-engine").text()).toContain("Ollama英訳");
+      expect(wrapper.find(".prompt-unknown").exists()).toBe(false);
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("runs sequential batch generation, survives recoverable cutout errors, regenerates items, cancels cleanly, and equips the full outfit", async () => {
     const postedPrompts: Array<{ prompt: string; seed: number; cutout: boolean }> = [];
     const createdUrls: string[] = [];
@@ -233,6 +321,10 @@ describe("on-device diffusion processing", () => {
       expect(device.ready).toBe(true);
       expect(postedPrompts.map((p) => p.seed)).toEqual([100, 101, 102]);
       expect(postedPrompts[0]!.prompt.startsWith("pastel spring cafe")).toBe(true);
+      expect(postedPrompts[0]!.prompt).toContain("no humans");
+      expect(postedPrompts[0]!.prompt).toContain("plain white background");
+      expect(postedPrompts[0]!.prompt).toContain("no scenery");
+      expect(postedPrompts[0]!.prompt).toContain("simple illustration");
       expect(device.batchResults[0]!.preview).toBe("blob:batch-1");
       expect(device.batchResults[1]!.error).toContain("白背景の透過に失敗");
       expect(device.batchResults[2]!.preview).toBe("blob:batch-2");
@@ -286,6 +378,52 @@ describe("on-device diffusion processing", () => {
       wrapper.unmount();
     } finally {
       vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("renders generated local socks on the mannequin and keeps GPU worker alive on recoverable single-part errors", async () => {
+    const socksBase = catalog.items.find((i) => i.category === "socks") as Garment;
+    const localSocks: Garment = {
+      ...socksBase,
+      id: "local-socks-1",
+      baseId: socksBase.id,
+      source: "local-diffusion",
+      imageUrl: "blob:local-socks",
+    };
+    const mannequin = mount(MannequinPreview, {
+      props: { heads: 5, gender: "girl", pose: "relax", selected: [localSocks], palette: [], dressed: true, guides: false, paletteColors: false },
+    });
+    const sockImg = mannequin.find('image[data-part="socks"]');
+    expect(sockImg.exists()).toBe(true);
+    expect(sockImg.attributes("href")).toBe("blob:local-socks");
+    mannequin.unmount();
+
+    let terminated = false;
+    class RecoverableMockWorker {
+      onmessage: ((event: { data: Record<string, unknown> }) => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      postMessage(msg: { type: string }) {
+        if (msg.type === "generate") {
+          queueMicrotask(() => {
+            this.onmessage?.({ data: { type: "error", message: "白背景の透過に失敗しました。", recoverable: true } });
+          });
+        }
+      }
+      terminate() { terminated = true; }
+    }
+    vi.stubGlobal("Worker", RecoverableMockWorker);
+    try {
+      setActivePinia(createPinia());
+      const device = useDeviceGeneration();
+      device.supported = true;
+      device.ready = true;
+      device.generate("ribbed socks", 42, true, { base: socksBase, prompt: "ribbed socks", name: "オリジナル靴下", colors: [] });
+      await vi.waitFor(() => expect(device.busy).toBe(false));
+      expect(terminated).toBe(false);
+      expect(device.ready).toBe(true);
+      expect(device.error).toContain("白背景の透過");
+    } finally {
       vi.unstubAllGlobals();
     }
   });

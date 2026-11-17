@@ -16,6 +16,7 @@
       class="text-input title-input"
       maxlength="100"
     />
+    <p v-if="titleEnglish" class="outfit-name-en" :title="titleEnglish"><span>EN</span>{{ titleEnglish }}</p>
     <div class="outfit-list">
       <div
         v-for="category in wardrobe.catalog.categories"
@@ -178,7 +179,7 @@
   </aside>
 </template>
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 withDefaults(defineProps<{ inspector?: boolean }>(), { inspector: false });
 const emit = defineEmits<{ "select-pose": [] }>();
 import {
@@ -197,11 +198,13 @@ import {
 import type { Category } from "~/types/wardrobe";
 import { useWardrobe } from "~/composables/useWardrobe";
 import { useAvatar } from "~/composables/useAvatar";
+import { translateCoordinatePrompt } from "~/utils/generationPrompt";
 import { studioPoses } from "~/data/studioPoses";
 import PosePicker from "~/components/PosePicker.vue";
 import GarmentColorEditor from "~/components/GarmentColorEditor.vue";
 const wardrobe = useWardrobe();
 const avatar = useAvatar();
+const titleEnglish = computed(() => translateCoordinatePrompt(wardrobe.title));
 const posePickerOpen = ref(false);
 const colorOpen = ref(true);
 const colorEditor = ref<HTMLElement | null>(null);

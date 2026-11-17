@@ -30,7 +30,10 @@
               <span><img :src="wardrobe.previewImage(item)" :alt="item.name" :class="{ 'local-garment-image': item.source }" /><i v-if="wardrobe.selections[item.category] === item.id"><Check :size="11" /></i></span>
               <strong>{{ item.name }}</strong>
             </button>
-            <button class="fitting-add-canvas" :aria-label="`${item.name}をキャンバスに追加`" @click="$emit('add-to-canvas', item)"><Plus :size="11" />資料として追加</button>
+            <div class="fitting-tile-actions">
+              <button class="fitting-add-canvas" :aria-label="`${item.name}をキャンバスに追加`" @click="$emit('add-to-canvas', item)"><Plus :size="11" />資料として追加</button>
+              <button v-if="item.source" class="fitting-remove-local" :aria-label="`${item.name}を衣装棚から削除`" @click="wardrobe.removeGenerated(item.id)">削除</button>
+            </div>
           </div>
         </div>
         <div v-if="!categoryItems.length" class="fitting-library-empty"><Search :size="22" :stroke-width="1.2" /><p>{{ source === 'local' && !query ? 'この部位の生成衣装はまだありません。' : '条件に合う衣装がありません。' }}</p><button v-if="source === 'local' && !query" class="button secondary" @click="$emit('generate')"><Plus :size="13" />衣装を生成</button><button v-else class="text-link" @click="query = ''">検索をクリア</button></div>

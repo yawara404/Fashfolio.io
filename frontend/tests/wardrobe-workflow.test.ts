@@ -68,13 +68,28 @@ describe("coordinate editing and recovery", () => {
     vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("quota"); });
     store.save(); expect(store.saved).toHaveLength(0); expect(store.toast).toContain("保存できません");
   });
-  it("honors locks during manual selection and offline audience-aware recommendations", async () => {
+  it("honors locks during manual selection and offline/online audience-aware recommendations including locked empty slots", async () => {
     const store = await setup(), avatar = useAvatar(); avatar.setGender("boy");
     store.toggleLock("outer"); store.choose(garment("trench")); expect(store.selections.outer).toBe("mens-blazer");
     await store.recommend(false);
     expect(store.selections.outer).toBe("mens-blazer");
     expect(store.selectedItems.every(item => item.audience !== "womens")).toBe(true);
     expect(vi.mocked($fetch).mock.calls.at(-1)?.[1]).toMatchObject({body: {audience:"mens"}});
+
+    // Locked empty slot (bag) stays empty even when online recommend returns a bag ID.
+    store.remove("bag");
+    store.toggleLock("bag");
+    const onlineFetch = vi.fn().mockResolvedValueOnce({
+      item_ids: ["cotton-tank", "mens-shirt", "mens-blazer", "straight-slacks", "loafers", "canvas-tote"],
+      reason: "オンライン提案",
+      engine: "random",
+      model: null,
+      notice: null,
+    });
+    vi.stubGlobal("$fetch", onlineFetch);
+    await store.recommend(false);
+    expect(store.selections.bag).toBeUndefined();
+    expect(store.selections.outer).toBe("mens-blazer");
   });
   it("invalidates the AI reference cache when only garment paint changes", () => {
     const input = {heads:5,gender:"girl" as const,pose:"relax",selected:[garment("sailor-top")],palette:[],paletteColors:false};

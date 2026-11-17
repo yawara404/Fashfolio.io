@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const url = getRequestURL(event);
   const path = url.pathname.replace(/^\/api\//, "");
   if (
-    !/^(catalog|prompts|recommend|references|health|integrations|storage\/(?:status|workspace|assets\/[a-f0-9]{64}))$/.test(path)
+    !/^(auth\/(?:status|login|register|me)|catalog|prompts|recommend|translate-prompt|references|health|integrations|storage\/(?:status|workspace|assets\/[a-f0-9]{64}))$/.test(path)
   ) {
     throw createError({ statusCode: 404, statusMessage: "Unknown API route" });
   }

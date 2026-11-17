@@ -5,13 +5,9 @@ export default defineNuxtConfig({
   ignore: [".nuxt-build/**", ".nuxt-check/**", ".nuxt-generate/**", ".cache/**"],
   runtimeConfig: {
     apiBase: "http://127.0.0.1:8085",
-    public: {
-      apiBase: "http://127.0.0.1:8085",
-    },
   },
   routeRules: {
     "/try-on": { redirect: "/tryon" },
-    "/api/**": { proxy: "http://127.0.0.1:8085/api/**" },
   },
   compatibilityDate: "2024-04-03",
   devtools: { enabled: false },
@@ -30,8 +26,20 @@ export default defineNuxtConfig({
             "衣装パーツと配色を選んで、イラスト設定文・AI用プロンプト・資料リンクをまとめて生成。Ollamaで衣装のアイデアも。",
         },
         { name: "theme-color", content: "#ffffff" },
+        { property: "og:type", content: "website" },
+        { property: "og:title", content: "Fashfolio — 絵師向けコーデプロンプトメーカー" },
+        {
+          property: "og:description",
+          content:
+            "衣装パーツと配色を選んで、イラスト設定文・AI用プロンプト・資料リンクをまとめて生成。",
+        },
       ],
       link: [
+        {
+          rel: "icon",
+          type: "image/svg+xml",
+          href: "/favicon.svg",
+        },
         {
           rel: "preconnect",
           href: "https://fonts.googleapis.com",

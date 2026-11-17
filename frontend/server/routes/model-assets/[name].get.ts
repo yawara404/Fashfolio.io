@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, getRouterParam, getHeader, setHeader, setResponseStatus, sendStream } from "h3";
 import { Readable } from "node:stream";
-import { DIFFUSION_MODELS, DIFFUSION_REVISION, diffusionModelFile, createReadStream } from "../../utils/diffusionModels";
+import { DIFFUSION_MODELS, DIFFUSION_REVISION, diffusionModelFile, mirrorModelToR2, createReadStream } from "../../utils/diffusionModels";
 import { modelRange } from "../../utils/modelRange";
 
 export default defineEventHandler(async event=>{
@@ -17,10 +17,12 @@ export default defineEventHandler(async event=>{
   if(range === "invalid") {setHeader(event,"Content-Range",`bytes */${DIFFUSION_MODELS[key].size}`);throw createError({statusCode:416,statusMessage:"Invalid model range"});}
   // Read immutable model objects from private R2 through a server-side signed URL.
   // No bucket credentials, signed links or CORS setup are needed in the browser.
-  const timeout=new AbortController(), deadline=setTimeout(()=>timeout.abort(),4000);
+  const config=useRuntimeConfig(event);
+  const timeout=new AbortController(), deadline=setTimeout(()=>timeout.abort(),8000);
+  let remoteStatus = 0;
   try {
-    const config=useRuntimeConfig(event);
     const remote=await fetch(`${config.apiBase}/api/storage/models/${DIFFUSION_REVISION}/${name}`,{signal:timeout.signal,headers:range?{Range:`bytes=${range.start}-${range.end}`}:{}});
+    remoteStatus = remote.status;
     clearTimeout(deadline);
     const expected=range?range.end-range.start+1:DIFFUSION_MODELS[key].size;
     if(remote.ok && remote.body && Number(remote.headers.get("Content-Length"))===expected && remote.status===(range?206:200)) {
@@ -34,6 +36,7 @@ export default defineEventHandler(async event=>{
   finally {clearTimeout(deadline);}
   try {
     const path=await diffusionModelFile(key);
+    if (remoteStatus === 404) void mirrorModelToR2(config.apiBase, key);
     setHeader(event,"Content-Type","application/octet-stream");
     setHeader(event,"Content-Length",range?range.end-range.start+1:DIFFUSION_MODELS[key].size);
     if(range) {setResponseStatus(event,206);setHeader(event,"Content-Range",`bytes ${range.start}-${range.end}/${DIFFUSION_MODELS[key].size}`);}

@@ -207,7 +207,7 @@ const layers = computed(() => {
     const head = category === "head" || (category === "jewelry" && ["earrings", "hoops"].includes(item.kind));
     const r = head ? headRig.value : rig.value;
     let boxes = item.imageUrl ? garmentImagePlacements(r, category).map((p) => p.box) : [];
-    if (category === "shoes" && boxes.length === 2) {
+    if ((category === "shoes" || category === "socks") && boxes.length === 2) {
       const left = Math.min(...boxes.map((b) => b.x)), top = Math.min(...boxes.map((b) => b.y));
       boxes = [{ x: left, y: top, width: Math.max(...boxes.map((b) => b.x + b.width)) - left, height: Math.max(...boxes.map((b) => b.y + b.height)) - top }];
     }

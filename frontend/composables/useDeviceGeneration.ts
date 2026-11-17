@@ -105,6 +105,13 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
           pendingGenerate = null;
           return;
         }
+        if (data.recoverable && phase.value === "generate") {
+          error.value = data.message;
+          busy.value = false;
+          phase.value = "idle";
+          progress.value = null;
+          return;
+        }
         const err = new Error(data.message);
         pendingGenerate?.reject(err); pendingGenerate = null;
         pendingTryOn?.reject(err); pendingTryOn = null;

@@ -7,6 +7,7 @@ import { latentNoise, scaleLatents, eulerStep, decodePixels, removeWhiteBackdrop
 import { imageSchedule, imageLatents, imageEulerStep, imageTensor, toFloat16, fromFloat16 } from "../utils/img2img";
 import { VAE_SCALE } from "../utils/diffusion";
 import { chunkedModel, fileModel } from "../utils/modelCache";
+import { HUMAN_FREE_GUARD } from "../utils/generationPrompt";
 
 const MODEL = "https://huggingface.co/schmuell/sd-turbo-ort-web/resolve/ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1";
 const TOKENIZER = "https://huggingface.co/Xenova/clip-vit-base-patch16/resolve/342fdf2f67aded64d138ff074745fb4a5d2bba5f";
@@ -21,27 +22,21 @@ let tokenizer: Tokenizer | undefined;
 let busy = false;
 const send = (data: Record<string, unknown>) => self.postMessage(data);
 function status(message: string, progress?: number) { send({ type: "status", message, progress }); }
-async function fetchWeight(key:string,path:string,size:number) {
+function fetchWeight(key:string,path:string,size:number) {
   status(`${key}のモデルを準備中`);
-  try {
-    // Nuxt keeps one local disk copy. This also works when the browser caps
-    // per-origin storage below the size of the diffusion model.
-    const response=await fetch(`/model-assets/${key}?revision=ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1`);
-    if(!response.ok || !response.body) throw new Error("Local model unavailable");
-    const bytes=new Uint8Array(size),reader=response.body.getReader();let received=0,last=0;
-    try {while(true){const {done,value}=await reader.read();if(done) break;if(received+value.length>size) throw new Error("Model size mismatch");bytes.set(value,received);received+=value.length;if(performance.now()-last>200){status(`${key} ${Math.round(received/1e6)} / ${Math.round(size/1e6)} MB`,received/size);last=performance.now();}}}
-    finally{reader.releaseLock();}
-    if(received!==size) throw new Error("Model incomplete");
-    return bytes.buffer;
-  } catch {return fetchCached(`${MODEL}/${path}`,key,size);}
+  // Cache key is the canonical upstream URL; the shared R2 copy (via Nuxt) is the preferred source,
+  // and each device persists the weights in its own browser Cache Storage.
+  return fetchCached(`${MODEL}/${path}`,key,size,[`/model-assets/${key}?revision=ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1`,`${MODEL}/${path}`]);
 }
-async function fetchCached(url: string, label: string, size = 0) {
+async function fetchCached(url: string, label: string, size = 0, sources?: string[]) {
   let cache: Cache | undefined;
   try { cache = await caches.open(CACHE); } catch { /* Private mode can disable Cache Storage. */ }
   if (size > 128 * 1024 * 1024) {
     const progress=(received:number,total:number,saving?:boolean)=>status(`${label} ${Math.round(received/1e6)} / ${Math.round(total/1e6)} MB${saving ? ' · 保存中' : ''}`,received/total);
     const warning=()=>send({type:"warning",message:"モデルを保存できませんでした。次回は再取得が必要です。"});
-    return await fileModel(url,size,cache,progress,warning) ?? chunkedModel(url,size,cache,progress,warning);
+    // Browser Cache Storage (bounded chunks) is the per-device store; OPFS only when Cache Storage is unavailable.
+    if(cache) return chunkedModel(url,size,cache,progress,warning,undefined,sources);
+    return await fileModel(url,size,cache,progress,warning,sources) ?? chunkedModel(url,size,cache,progress,warning,undefined,sources);
   }
   const cached = await cache?.match(url);
   if (cached) { status(label + "をキャッシュから読み込み中"); return cached.arrayBuffer(); }
@@ -118,6 +113,24 @@ async function floats(tensor: ort.Tensor) {
   const view = data as Float32Array | Uint16Array;
   return tensor.type === "float16" ? fromFloat16(new Uint16Array(view.buffer, view.byteOffset, view.byteLength / 2)) : Float32Array.from(data as Float32Array);
 }
+/**
+ * Reserve room for the fixed clothing/background guard. The free-form text
+ * is truncated first, so the garment stays isolated even when a long English
+ * description fills the 77-token CLIP window.
+ */
+function clothingPromptIds(prompt: string) {
+  const ids = new Int32Array(77); // SD-Turbo CLIP pad token is 0.
+  // Re-append the guard after truncation so a long description can never
+  // remove the no-human / white-background instruction from the prompt.
+  const clean = prompt.split(HUMAN_FREE_GUARD).join(", ").replace(/,(\s*,)+/g, ",").replace(/^,\s*|,\s*$/g, "");
+  const suffix = tokenizer!.encode(HUMAN_FREE_GUARD).ids;
+  const budget = Math.max(1, 77 - suffix.length - 1);
+  const content = tokenizer!.encode(clean).ids.slice(0, budget);
+  ids.set(content, 0);
+  ids.set(suffix, content.length);
+  ids[content.length + suffix.length] = 49407;
+  return ids;
+}
 async function generate(prompt: string, seed: number, cutout: boolean) {
   await prepare();
   const tensors = new Set<ort.Tensor>();
@@ -125,9 +138,7 @@ async function generate(prompt: string, seed: number, cutout: boolean) {
   const started = performance.now();
   try {
     status("1 / 3 衣装の説明を読み取り中");
-    const encoded = tokenizer!.encode(prompt).ids.slice(0, 77);
-    if (encoded.length === 77) encoded[76] = 49407;
-    const ids = new Int32Array(77); ids.set(encoded); // SD-Turbo CLIP pad token is 0.
+    const ids = clothingPromptIds(prompt);
     const text = await sessions.text!.run({ input_ids: own(input("text", "input_ids", ids, [1, 77])) });
     const hidden = own(text.last_hidden_state!);
     status("2 / 3 この端末のGPUで衣装を描画中");

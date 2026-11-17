@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from app.services import reflens_auth
 from app.services.ollama_client import status
 from app.core.config import settings
 
@@ -27,5 +28,9 @@ async def integrations():
         "r2": {
             "configured": settings.r2_configured,
             "provider": "r2" if settings.r2_configured else "local",
+        },
+        "auth": {
+            "configured": reflens_auth.is_configured(),
+            "provider": "reflens" if reflens_auth.is_configured() else "none",
         },
     }

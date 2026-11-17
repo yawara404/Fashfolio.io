@@ -70,6 +70,9 @@ const aspect = computed(() => props.item.width / Math.max(1, props.item.height))
         :alt="item.label"
         draggable="false"
       />
+      <div v-else-if="item.kind === 'garment'" class="canvas-item-missing">
+        <span>削除された衣装</span>
+      </div>
       <textarea v-else-if="item.kind === 'note'" class="canvas-item-note"
         :value="item.text" aria-label="キャンバスのメモ" placeholder="ここに作画メモを書く…"
         maxlength="1000" @pointerdown.stop @keydown.stop

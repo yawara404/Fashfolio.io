@@ -15,7 +15,7 @@ from app.routers import storage as storage_router
 from app.services import danbooru_client, object_storage, pinterest_client
 from app.services.catalog import garments
 from app.services.ollama_client import OllamaUnavailable
-from app.models.outfit import AISelection, PromptText
+from app.models.outfit import AISelection, PromptText, PromptTranslation
 
 
 class APITests(unittest.TestCase):
@@ -72,6 +72,7 @@ class APITests(unittest.TestCase):
                 "palette": ["#e8bfcb", "#FAF7EF"],
                 "notes": "袖をふんわり",
                 "title": "春コーデ",
+                "title_en": "spring, cafe, girly, coordinate",
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -82,11 +83,64 @@ class APITests(unittest.TestCase):
         self.assertIn("ribbon-tie blouse", output["positive"])
         self.assertIn("cotton texture", output["positive"])
         self.assertIn("dusty pink", output["positive"])
+        self.assertIn("spring", output["positive"])
+        self.assertIn("cafe", output["positive"])
+        self.assertIn("no humans", output["positive"])
+        self.assertIn("plain white background", output["positive"])
+        self.assertNotIn("full body", output["positive"])
+        self.assertIn("human", output["negative"])
         self.assertEqual(output["palette"], ["#E8BFCB", "#FAF7EF"])
         self.assertEqual(len(output["references"]), 3)
         self.assertIn("rating%3Ag", output["references"][0]["danbooru"])
         self.assertIn(
             "pinterest.com/search/pins/", output["references"][0]["pinterest"]
+        )
+
+    def test_translate_prompt_uses_ollama_and_cleans_tags(self):
+        answer = PromptTranslation(
+            positive=" spring , cafe,\nspring, girly, coordinate ",
+            untranslated=[],
+        )
+        with patch(
+            "app.routers.prompts.structured", new=AsyncMock(return_value=answer)
+        ) as mocked:
+            response = self.client.post(
+                "/api/translate-prompt",
+                json={"text": "春のカフェのガーリーコーデ"},
+            )
+        self.assertEqual(response.status_code, 200)
+        output = response.json()
+        self.assertEqual(output["engine"], "ollama")
+        self.assertEqual(output["positive"], "spring, cafe, girly, coordinate")
+        self.assertEqual(mocked.await_args.args[1], {"text": "春のカフェのガーリーコーデ"})
+
+    def test_translate_prompt_falls_back_without_invalid_japanese_output(self):
+        with patch(
+            "app.routers.prompts.structured",
+            new=AsyncMock(side_effect=OllamaUnavailable("offline")),
+        ):
+            offline = self.client.post(
+                "/api/translate-prompt", json={"text": "春のカフェ"}
+            ).json()
+        self.assertEqual(offline["engine"], "unavailable")
+        self.assertEqual(offline["positive"], "")
+        self.assertIn("offline", offline["notice"])
+
+        japanese = PromptTranslation(positive="春, cafe", untranslated=["春"])
+        with patch(
+            "app.routers.prompts.structured",
+            new=AsyncMock(return_value=japanese),
+        ):
+            invalid = self.client.post(
+                "/api/translate-prompt", json={"text": "春のカフェ"}
+            ).json()
+        self.assertEqual(invalid["engine"], "unavailable")
+        self.assertEqual(invalid["positive"], "")
+
+    def test_translate_prompt_rejects_empty_text(self):
+        self.assertEqual(
+            self.client.post("/api/translate-prompt", json={"text": ""}).status_code,
+            422,
         )
 
     def test_empty_unknown_duplicate_category_and_invalid_palette_rejected(self):
@@ -355,8 +409,9 @@ class _FakeR2Client:
             raise RuntimeError("unreachable")
         return {"Bucket": Bucket}
 
-    def put_object(self, Bucket, Key, Body, ContentType="", CacheControl="", Metadata=None):
+    def put_object(self, Bucket, Key, Body, ContentType="", CacheControl="", Metadata=None, ContentEncoding=""):
         self.objects[(Bucket, Key)] = {
+            "ContentEncoding": ContentEncoding,
             "Body": Body,
             "ContentType": ContentType,
             "Metadata": dict(Metadata or {}),
@@ -372,6 +427,22 @@ class _FakeR2Client:
             "ContentType": entry["ContentType"],
             "Metadata": entry["Metadata"],
         }
+
+    def head_object(self, Bucket, Key):
+        entry = self.objects.get((Bucket, Key))
+        if entry is None:
+            from botocore.exceptions import ClientError
+            raise ClientError({"Error": {"Code": "404"}}, "HeadObject")
+        return {
+            "ContentLength": len(entry["Body"]),
+            "ContentType": entry["ContentType"],
+            "Metadata": entry["Metadata"],
+        }
+
+    def upload_file(self, Filename, Bucket, Key, ExtraArgs=None, Config=None):
+        with open(Filename, "rb") as handle:
+            body = handle.read()
+        self.put_object(Bucket, Key, body, ContentType=(ExtraArgs or {}).get("ContentType", ""))
 
     def delete_object(self, Bucket, Key):
         self.objects.pop((Bucket, Key), None)
@@ -452,6 +523,33 @@ class StorageTests(unittest.TestCase):
             loaded = self.client.get("/api/storage/workspace", headers=headers)
             self.assertEqual(loaded.status_code, 200)
             self.assertEqual(loaded.json(), payload)
+            stored = next(iter(fake.objects.values()))
+            self.assertEqual(stored["Body"][:2], b"\x1f\x8b")
+            self.assertEqual(stored["ContentEncoding"], "gzip")
+
+    def test_reflens_account_isolates_r2_namespace(self):
+        import sqlite3, tempfile
+        from app.services import reflens_auth
+        fake = _FakeR2Client()
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "reflens.db"
+            conn = sqlite3.connect(db)
+            conn.execute("CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT, username TEXT, hashed_password TEXT, avatar_url TEXT, instagram_user_id TEXT, auto_tagging INTEGER, created_at TEXT, updated_at TEXT)")
+            conn.commit(); conn.close()
+            auth_settings = SimpleNamespace(**{**self.r2_settings.__dict__, "reflens_api_url": "", "reflens_jwt_secret": "s" * 32, "reflens_db_path": str(db)})
+            with patch.object(object_storage, "settings", auth_settings), patch.object(storage_router, "settings", auth_settings), patch.object(reflens_auth, "settings", auth_settings), patch.object(object_storage, "r2_client", return_value=fake), patch.object(storage_router, "r2_client", return_value=fake):
+                reg = self.client.post("/api/auth/register", json={"email": "a@example.com", "username": "aa", "password": "secret12"})
+                self.assertEqual(reg.status_code, 200)
+                self.assertEqual(self.client.post("/api/auth/login", json={"email": "a@example.com", "password": "bad"}).status_code, 401)
+                login = self.client.post("/api/auth/login", json={"email": "a@example.com", "password": "secret12"}).json()
+                bearer = {"Authorization": f"Bearer {login['access_token']}"}
+                self.assertEqual(self.client.get("/api/auth/me", headers=bearer).json()["email"], "a@example.com")
+                payload = {"version": 1, "garments": []}
+                self.assertEqual(self.client.put("/api/storage/workspace", headers=bearer, json=payload).status_code, 200)
+                self.assertTrue(any("/users/" in key for _, key in fake.objects))
+                self.assertEqual(self.client.get("/api/storage/workspace", headers=bearer).json(), payload)
+                self.assertEqual(self.client.get("/api/storage/workspace", headers={"X-Fashfolio-Vault": self.vault}).status_code, 404)
+                self.assertEqual(self.client.get("/api/storage/workspace", headers={"Authorization": "Bearer bad.token.value"}).status_code, 401)
 
     def test_asset_put_get_delete_and_limits(self):
         fake = _FakeR2Client()
@@ -489,6 +587,47 @@ class StorageTests(unittest.TestCase):
             redirect = self.client.get(f"/api/storage/models/{'e' * 40}/text", follow_redirects=False)
             self.assertEqual(redirect.status_code, 307)
             self.assertIn("https://signed.r2.test/fashfolio-io/fashfolio/models/", redirect.headers["location"])
+
+    def test_model_mirror_to_r2_from_local_cache_and_stream(self):
+        import os
+        import tempfile
+        fake = _FakeR2Client()
+        rev = "a" * 40
+        tiny_sizes = {**object_storage.MODEL_SIZES, "vae": 12}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = os.path.join(tmpdir, f"{rev}-vae.onnx")
+            with open(model_path, "wb") as handle:
+                handle.write(b"fake-onnx-12")
+            with (
+                patch.object(object_storage, "settings", self.r2_settings),
+                patch.object(storage_router, "settings", self.r2_settings),
+                patch.object(object_storage, "r2_client", return_value=fake),
+                patch.object(storage_router, "r2_client", return_value=fake),
+                patch.object(object_storage, "r2_transfer_client", return_value=fake),
+                patch.object(object_storage, "MODEL_SIZES", tiny_sizes),
+                patch.object(storage_router, "MODEL_SIZES", tiny_sizes),
+                patch.dict(os.environ, {"FASHFOLIO_MODEL_CACHE": tmpdir}),
+            ):
+                res = self.client.post(f"/api/storage/models/{rev}/vae?wait=true")
+                self.assertEqual(res.status_code, 200)
+                self.assertEqual(res.json()["saved"], True)
+                self.assertEqual(res.json()["already_exists"], False)
+                self.assertIn(("fashfolio-io", f"fashfolio/models/{rev}/vae.onnx"), fake.objects)
+
+                res2 = self.client.post(f"/api/storage/models/{rev}/vae?wait=true")
+                self.assertEqual(res2.status_code, 200)
+                self.assertEqual(res2.json()["already_exists"], True)
+
+                # Separate-disk stream fallback also uploads cleanly.
+                fake.objects.clear()
+                os.remove(model_path)
+                res3 = self.client.post(
+                    f"/api/storage/models/{rev}/vae?wait=true",
+                    content=b"fake-onnx-12",
+                    headers={"Content-Type": "application/octet-stream"},
+                )
+                self.assertEqual(res3.status_code, 200)
+                self.assertEqual(fake.objects[("fashfolio-io", f"fashfolio/models/{rev}/vae.onnx")]["Body"], b"fake-onnx-12")
 
 
 if __name__ == "__main__":

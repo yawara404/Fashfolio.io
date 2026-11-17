@@ -3,8 +3,21 @@ export const MODEL_DIRECTORY = "fashfolio-diffusion-models-v1";
 type Progress = (received: number, total: number, saving?: boolean) => void;
 interface ModelFileAccess { getSize():number; read(data:Uint8Array,options:{at:number}):number; write(data:Uint8Array,options:{at:number}):number; truncate(size:number):void; flush():void; close():void }
 
+/** Try ordered download sources (shared R2 proxy first, origin host second); `url` stays the stable cache key. */
+async function openSource(url:string,sources:string[]|undefined,received:number):Promise<Response> {
+  let failure:unknown=new Error("モデルを取得できません。");
+  for(const source of sources?.length ? sources : [url]) {
+    try {
+      const response=await fetch(source,received ? {headers:{Range:`bytes=${received}-`}} : undefined);
+      if(response.ok && response.body) return response;
+      failure=new Error(`モデルを取得できません（HTTP ${response.status}）。`);
+    } catch(error) {failure=error;}
+  }
+  throw failure;
+}
+
 /** OPFS avoids Cache API's large-model storage failures on Chromium. */
-export async function fileModel(url:string,size:number,cache:Cache|undefined,progress:Progress,warning:()=>void):Promise<ArrayBuffer|undefined> {
+export async function fileModel(url:string,size:number,cache:Cache|undefined,progress:Progress,warning:()=>void,sources?:string[]):Promise<ArrayBuffer|undefined> {
   let access:ModelFileAccess;
   try {
     const root=await navigator.storage.getDirectory(), directory=await root.getDirectoryHandle(MODEL_DIRECTORY,{create:true});
@@ -32,10 +45,9 @@ export async function fileModel(url:string,size:number,cache:Cache|undefined,pro
       }
     }
     if (received<size) {
-      const response=await fetch(url,received ? {headers:{Range:`bytes=${received}-`}} : undefined);
-      if(!response.ok || !response.body) throw new Error(`モデルを取得できません（HTTP ${response.status}）。`);
+      const response=await openSource(url,sources,received);
       if(received && response.status!==206) {received=0;access.truncate(0);}
-      const reader=response.body.getReader();let flushed=received;
+      const reader=response.body!.getReader();let flushed=received;
       try { while(true) {
         const {done,value}=await reader.read();if(done) break;
         if(received+value.length>size) throw new Error("モデルのサイズが一致しません。");
@@ -62,7 +74,7 @@ export async function clearModelFiles() {
 }
 
 /** Large ArrayBuffer Responses fail in some browsers; persist bounded chunks. */
-export async function chunkedModel(url: string, size: number, cache: Cache | undefined, progress: Progress, warning: () => void, chunkSize = CHUNK): Promise<ArrayBuffer> {
+export async function chunkedModel(url: string, size: number, cache: Cache | undefined, progress: Progress, warning: () => void, chunkSize = CHUNK, sources?: string[]): Promise<ArrayBuffer> {
   const part = (i: number) => `${url}?fashfolio-chunk=${i}`;
   const manifestKey = `${url}?fashfolio-manifest=1`;
   const bytes = new Uint8Array(size);
@@ -83,10 +95,9 @@ export async function chunkedModel(url: string, size: number, cache: Cache | und
       if (received === size) return bytes.buffer;
     }
   } catch { received=0; committed=0; count=0; }
-  const response = await fetch(url, received ? {headers:{Range:`bytes=${received}-`}} : undefined);
-  if (!response.ok || !response.body) throw new Error(`モデルを取得できません（HTTP ${response.status}）。`);
+  const response = await openSource(url, sources, received);
   if (received && response.status !== 206) { received=0; committed=0; count=0; }
-  const reader = response.body.getReader();
+  const reader = response.body!.getReader();
   async function commit(end: number) {
     if (!cache) return;
     try {

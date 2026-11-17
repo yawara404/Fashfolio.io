@@ -68,6 +68,7 @@
     <div
       v-else
       class="mannequin-stage"
+      :class="{ 'is-dark': background === '#1f1d24' }"
       :style="{ backgroundColor: background }"
     >
       <div class="stage-corner">

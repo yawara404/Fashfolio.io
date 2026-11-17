@@ -268,6 +268,8 @@ textarea:focus-visible,
 .title-input {
   margin-bottom: 14px;
 }
+.outfit-name-en { margin: -9px 0 12px; color: var(--muted); font-size: 9px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.outfit-name-en span { color: var(--subtle); font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: .08em; margin-right: 5px; }
 .outfit-list {
   display: flex;
   flex-direction: column;

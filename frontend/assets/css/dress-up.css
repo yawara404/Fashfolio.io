@@ -24,6 +24,8 @@
 .mannequin-stage { border-radius: 14px; border-color: #dedfe9; background-image: radial-gradient(ellipse at 50% 35%, #ffffff65, transparent 75%); }
 .mannequin-stage::before { content: ''; position: absolute; width: 72%; height: 13%; bottom: 7%; left: 14%; border: 1px solid #bcb9d22e; border-radius: 50%; background: #ffffff25; pointer-events: none; }
 .stage-corner, .stage-caption { color: #79768b; }
+.mannequin-stage.is-dark { border-color: #353240; background-image: radial-gradient(ellipse at 50% 35%, #ffffff10, transparent 75%); }
+.mannequin-stage.is-dark .stage-corner, .mannequin-stage.is-dark .stage-caption { color: #c2bfd3; }
 .provider-status.connected { background: #e8f6ee; color: #29895c; }
 .toast-message { box-shadow: 0 8px 30px #33365220; }
 .saved-dialog::backdrop, .generation-dialog::backdrop, .base-picker-dialog::backdrop { background: #252a4159; backdrop-filter: blur(4px); }
@@ -110,6 +112,17 @@
 .generation-form > input, .generation-form > select, .generation-form > textarea, .generation-settings input { width: 100%; padding: 8px 10px; background: var(--input); border: 1px solid var(--line-strong); border-radius: 7px; font-size: 11px; line-height: 1.6; }
 .generation-form textarea { min-height: 68px; }
 .field-help { color: var(--muted); font-size: 9px; line-height: 1.65; margin: 0; }
+.field-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.field-label-row > .field-label { margin: 0; }
+.auto-prompt-button { flex-shrink: 0; color: var(--accent); font-size: 8px !important; }
+.prompt-auto-state { display: flex; align-items: flex-start; gap: 4px; color: #3f7459; }
+.prompt-auto-state.manual { color: var(--subtle); }
+.prompt-auto-state > span:first-of-type { flex: 1; min-width: 0; }
+.prompt-auto-state svg { flex-shrink: 0; margin-top: 1px; }
+.prompt-engine { flex-shrink: 0; margin-left: auto; padding: 1px 5px; border: 1px solid #d9ecdf; border-radius: 999px; background: #eef7f1; color: #3f7459; font-size: 7px; font-weight: 700; line-height: 1.5; letter-spacing: .03em; white-space: nowrap; }
+.prompt-engine.dictionary { border-color: var(--line); background: var(--raised); color: var(--muted); }
+.prompt-engine.loading { border-color: var(--line); background: var(--accent-soft); color: var(--accent); }
+.prompt-unknown { color: #98662f; }
 .generation-settings { display: flex; align-items: flex-end; gap: 8px; margin-top: 4px; }
 .generation-settings label { flex: 1; color: var(--muted); font-size: 9px; }
 .generation-settings input { margin-top: 4px; padding: 6px 10px; font-family: 'JetBrains Mono', monospace; }
@@ -132,6 +145,29 @@
 .generation-actions .text-link { font-size: 9px; }
 .generation-footnote { color: var(--subtle); font-size: 9px; line-height: 1.65; margin: 8px 0 0; }
 .generation-footnote a { display: inline-flex; align-items: center; color: var(--muted); text-decoration: underline; margin-left: 4px; }
+.prompt-preset-select { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; }
+.prompt-preset-select > span { color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: .04em; }
+.prompt-preset-select select { width: 100%; padding: 7px 10px; background: var(--input); border: 1px solid var(--line-strong); border-radius: 7px; font-size: 11px; color: var(--ink); }
+.prompt-preset-select small { color: var(--muted); font-size: 9px; line-height: 1.5; }
+.generation-guard { display: flex; align-items: flex-start; gap: 5px; color: #3f7459; background: #eef7f1; border: 1px solid #d9ecdf; border-radius: 7px; padding: 6px 8px; font-size: 9px; line-height: 1.5; margin: 4px 0; }
+.generation-guard svg { flex-shrink: 0; margin-top: 1px; }
+.prompt-guide { border: 1px solid var(--line); border-radius: 9px; background: var(--raised); padding: 7px 9px; margin: 5px 0 2px; }
+.prompt-guide summary { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--ink); font-size: 10px; font-weight: 600; list-style: none; }
+.prompt-guide summary::-webkit-details-marker { display: none; }
+.prompt-guide summary svg { color: var(--accent); flex-shrink: 0; }
+.prompt-guide summary span { margin-left: auto; color: var(--muted); font-size: 8px; font-weight: 500; }
+.prompt-guide-lead { color: var(--muted); font-size: 9px; line-height: 1.6; margin: 5px 0 6px; }
+.prompt-guide-groups { display: flex; flex-direction: column; gap: 5px; max-height: 168px; overflow-y: auto; padding-right: 2px; }
+.prompt-guide-group { display: flex; gap: 6px; align-items: flex-start; }
+.prompt-guide-label { flex: 0 0 42px; display: flex; flex-direction: column; color: var(--ink); font-size: 9px; font-weight: 600; line-height: 1.3; padding-top: 3px; }
+.prompt-guide-label small { color: var(--subtle); font-size: 7px; font-weight: 400; }
+.prompt-guide-chips { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.prompt-guide-chips button { display: inline-flex; align-items: baseline; gap: 3px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--muted); font-size: 9px; line-height: 1.3; white-space: nowrap; max-width: 100%; }
+.prompt-guide-chips button small { color: var(--subtle); font-size: 7px; min-width: 0; max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+.prompt-guide-chips button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.prompt-guide-chips button.recommended { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.prompt-guide-chips button em { font-style: normal; font-size: 7px; font-weight: 700; line-height: 1.5; color: #fff; background: var(--accent); border-radius: 999px; padding: 0 4px; }
+.prompt-guide-chips button:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 600px) {
   .generation-dialog, .base-picker-dialog { padding: 16px; }
   .base-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

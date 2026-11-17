@@ -303,6 +303,10 @@ body { font-size: 13px; }
 .fitting-audience-tabs { display:flex; gap:4px; padding:7px 12px; border-bottom:1px solid var(--border,#e1e2e8); }
 .fitting-audience-tabs button { flex:1; padding:5px 3px; border-radius:5px; color:var(--muted,#707383); font-size:11px; }
 .fitting-audience-tabs button.active { background:var(--accent-soft,#eeedfb); color:var(--accent,#5749ce); font-weight:600; }
+.fitting-tile-actions { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.fitting-remove-local { padding: 5px 0; font-size: 9px; color: var(--muted); text-decoration: underline; flex-shrink: 0; }
+.fitting-remove-local:hover { color: #ad425b; }
+@media (max-width: 760px) { .outfit-panel .palette-section { border-top: 1px solid var(--line); padding-top: 18px; } }
 
 /* Per-garment paint controls share the quiet, compact inspector layout. */
 .garment-color-editor { padding: 13px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 12px; }

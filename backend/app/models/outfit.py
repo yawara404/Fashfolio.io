@@ -35,6 +35,7 @@ class OutfitRequest(BaseModel):
     custom_items: list[Garment] = Field(default_factory=list, max_length=10)
     palette: list[str] = Field(default_factory=list, max_length=5)
     title: str = Field(default="My coordinate", max_length=100)
+    title_en: str = Field(default="", max_length=500)
     notes: str = Field(default="", max_length=1000)
     style: str = Field(default="girly", max_length=40)
     use_ai: bool = False
@@ -68,6 +69,15 @@ class PromptText(BaseModel):
     brief_ja: str = Field(min_length=1, max_length=4000)
     positive: str = Field(min_length=1, max_length=4000)
     negative: str = Field(min_length=1, max_length=1500)
+
+
+class PromptTranslationRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=1000)
+
+
+class PromptTranslation(BaseModel):
+    positive: str = Field(min_length=1, max_length=1200)
+    untranslated: list[str] = Field(default_factory=list, max_length=20)
 
 
 class AISelection(BaseModel):

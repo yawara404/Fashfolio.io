@@ -10,7 +10,7 @@
       <p>{{ device.supported === false ? 'WebGPU（shader-f16）対応のPC版Chrome / Edgeでお試しください。衣装選び・試着はこのまま使えます。' : 'Stable Diffusion Turbo · 512 × 512 · 処理中もほかのパーツを編集できます' }}</p></div>
     </div>
     <div class="generation-mode-tabs" role="tablist" aria-label="生成モード">
-      <button type="button" role="tab" :class="{ active: generationMode === 'single' }" :aria-selected="generationMode === 'single'" :disabled="generatingLocal" @click="generationMode = 'single'">1パーツ生成</button>
+      <button type="button" role="tab" :class="{ active: generationMode === 'single' }" :aria-selected="generationMode === 'single'" :disabled="generatingLocal" @click="switchToSingleMode()">1パーツ生成</button>
       <button type="button" role="tab" :class="{ active: generationMode === 'batch' }" :aria-selected="generationMode === 'batch'" :disabled="generatingLocal" @click="switchToBatchMode()">1コーデまとめて生成</button>
     </div>
     <div v-if="generationMode === 'single'" class="generation-columns">
@@ -27,10 +27,34 @@
           <span class="base-picker-action"><LayoutGrid :size="14" />変更</span>
         </button>
         <label class="field-label" for="generation-name">衣装の名前</label>
-        <input id="generation-name" v-model="name" maxlength="60" :disabled="generatingLocal" />
-        <label class="field-label" for="generation-description">描きたい衣装（英語推奨）</label>
+        <input id="generation-name" v-model="name" maxlength="60" :disabled="generatingLocal" placeholder="例: 春のカフェのブラウス" />
+        <p class="field-help">コーデ名を入れると、英語プロンプトと絵柄を自動で作ります。「春」「カフェ」「水彩」などの言葉が使えます。</p>
+        <div class="field-label-row">
+          <label class="field-label" for="generation-description">描きたい衣装（英語・任意）</label>
+          <button type="button" class="text-link auto-prompt-button" :disabled="generatingLocal || !base" @click="regenerateDescriptionFromName">コーデ名から再生成</button>
+        </div>
         <textarea id="generation-description" v-model="description" rows="3" maxlength="250" :disabled="generatingLocal" placeholder="ribbon-tie blouse, puff sleeves, cotton" />
-        <p class="field-help">正面向きの衣装パーツとして生成します。形のベースは試着時の配置・サイズに使います。</p>
+        <p class="field-help prompt-auto-state" :class="{ manual: !descriptionIsAuto }">
+          <Wand2 :size="11" />
+          <span>{{ descriptionIsAuto ? 'コーデ名から英語プロンプトを自動入力中' : '手動編集（コーデ名を変えても自動更新しません）' }}</span>
+          <span v-if="descriptionIsAuto && descriptionEngine !== 'idle'" class="prompt-engine" :class="[descriptionEngine, { loading: descriptionTranslating }]" :title="descriptionTranslationNotice">
+            {{ descriptionTranslating ? 'Ollamaで英訳中…' : descriptionEngine === 'ollama' ? 'Ollama英訳' : '辞書英訳' }}
+          </span>
+        </p>
+        <p v-if="descriptionIsAuto && descriptionUnknown.length" class="field-help prompt-unknown">未対応の言葉: {{ descriptionUnknown.join('・') }}。英語で追記すると反映されます。</p>
+        <label class="prompt-preset-select" for="generation-preset">
+          <span>絵柄プリセット</span>
+          <select id="generation-preset" v-model="artStylePreset" :disabled="generatingLocal">
+            <option value="auto">コーデ名から自動（未指定はシンプル）</option>
+            <option v-for="preset in ART_STYLE_PRESETS" :key="preset.id" :value="preset.id">
+              {{ preset.name }}
+            </option>
+          </select>
+          <small>{{ presetHint }}</small>
+        </label>
+        <p class="generation-guard"><UserX :size="12" />人物と背景は描かず、衣装だけを白背景で生成します。</p>
+        <PromptSuggestionGuide :disabled="generatingLocal" @pick="addDescriptionSuggestion" />
+        <p class="field-help">形のベースは試着時の配置・サイズに使います。</p>
         <div class="generation-settings"><label for="generation-seed">Seed<input id="generation-seed" v-model.number="seed" type="number" min="1" max="4294967295" :disabled="generatingLocal" /></label><button class="icon-button" :disabled="generatingLocal" aria-label="Seedをランダムにする" @click="randomSeed"><Shuffle :size="15" /></button></div>
         <label class="generation-cutout"><input v-model="cutout" type="checkbox" :disabled="generatingLocal" />白背景を簡易透過する</label>
       </div>
@@ -48,8 +72,32 @@
       <div class="generation-form">
         <label class="field-label" for="batch-outfit-name">コーデ名（任意）</label>
         <input id="batch-outfit-name" v-model="batchOutfitName" maxlength="40" :disabled="generatingLocal" placeholder="例: 春のガーリーコーデ" />
-        <label class="field-label" for="batch-theme">コーデのテーマ（英語推奨）</label>
+        <p class="field-help">コーデ名を入れるだけで、英語テーマと絵柄を自動で作ります。「春」「カフェ」「レトロ」などが使えます。</p>
+        <div class="field-label-row">
+          <label class="field-label" for="batch-theme">コーデのテーマ（英語・任意）</label>
+          <button type="button" class="text-link auto-prompt-button" :disabled="generatingLocal" @click="regenerateThemeFromName">コーデ名から再生成</button>
+        </div>
         <textarea id="batch-theme" v-model="batchTheme" rows="2" maxlength="160" :disabled="generatingLocal" placeholder="pastel girly, lace ribbon, soft cotton" />
+        <p class="field-help prompt-auto-state" :class="{ manual: !themeIsAuto }">
+          <Wand2 :size="11" />
+          <span>{{ themeIsAuto ? 'コーデ名から英語プロンプトを自動入力中' : '手動編集（コーデ名を変えても自動更新しません）' }}</span>
+          <span v-if="themeIsAuto && themeEngine !== 'idle'" class="prompt-engine" :class="[themeEngine, { loading: themeTranslating }]" :title="themeTranslationNotice">
+            {{ themeTranslating ? 'Ollamaで英訳中…' : themeEngine === 'ollama' ? 'Ollama英訳' : '辞書英訳' }}
+          </span>
+        </p>
+        <p v-if="themeIsAuto && themeUnknown.length" class="field-help prompt-unknown">未対応の言葉: {{ themeUnknown.join('・') }}。英語で追記すると反映されます。</p>
+        <label class="prompt-preset-select" for="batch-art-preset">
+          <span>絵柄プリセット</span>
+          <select id="batch-art-preset" v-model="artStylePreset" :disabled="generatingLocal">
+            <option value="auto">コーデ名から自動（未指定はシンプル）</option>
+            <option v-for="preset in ART_STYLE_PRESETS" :key="preset.id" :value="preset.id">
+              {{ preset.name }}
+            </option>
+          </select>
+          <small>{{ presetHint }}</small>
+        </label>
+        <p class="generation-guard"><UserX :size="12" />人物と背景は描かず、衣装だけを白背景で生成します。</p>
+        <PromptSuggestionGuide :disabled="generatingLocal" @pick="addThemeSuggestion" />
         <div class="batch-slots-header">
           <span class="field-label">生成する部位</span>
           <small>選択中 {{ enabledBatchSlots.length }}点</small>
@@ -180,10 +228,22 @@
   </dialog>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
-import { X, Cpu, Sparkles, Download, Plus, Check, Shuffle, Square, LoaderCircle, ArrowUpRight, LayoutGrid, Search, Layers } from "lucide-vue-next";
+import { ref, computed, watch, nextTick, onBeforeUnmount } from "vue";
+import { X, Cpu, Sparkles, Download, Plus, Check, Shuffle, Square, LoaderCircle, ArrowUpRight, LayoutGrid, Search, Layers, UserX, Wand2 } from "lucide-vue-next";
+import PromptSuggestionGuide from "~/components/PromptSuggestionGuide.vue";
 import { useWardrobe } from "~/composables/useWardrobe";
+import { usePromptTranslation } from "~/composables/usePromptTranslation";
 import { useDeviceGeneration, type BatchPartInput, type BatchPartResult } from "~/composables/useDeviceGeneration";
+import {
+  ART_STYLE_PRESETS,
+  appendPromptToken,
+  artStyleHint,
+  composeClothingPrompt,
+  limitPromptTokens,
+  mergePromptTokens,
+  translateCoordinatePrompt,
+} from "~/utils/generationPrompt";
+import { translateJaToEnPrompt } from "~/utils/jaEnPrompt";
 import type { Category, Garment } from "~/types/wardrobe";
 
 type GenerationMode = "single" | "batch";
@@ -204,6 +264,22 @@ const props = defineProps<{ open: boolean }>();
 defineEmits<{ close: [] }>();
 const wardrobe = useWardrobe();
 const device = useDeviceGeneration();
+const {
+  engine: descriptionEngine,
+  loading: descriptionTranslating,
+  notice: descriptionTranslationNotice,
+  translate: translateDescription,
+  cancel: cancelDescriptionTranslation,
+  reset: resetDescriptionTranslation,
+} = usePromptTranslation();
+const {
+  engine: themeEngine,
+  loading: themeTranslating,
+  notice: themeTranslationNotice,
+  translate: translateTheme,
+  cancel: cancelThemeTranslation,
+  reset: resetThemeTranslation,
+} = usePromptTranslation();
 const dialog = ref<HTMLDialogElement | null>(null);
 const basePickerDialog = ref<HTMLDialogElement | null>(null);
 const basePickerOpen = ref(false);
@@ -217,6 +293,11 @@ const description = ref("");
 const batchOutfitName = ref("");
 const batchTheme = ref("");
 const lastAutoTheme = ref("");
+const lastAutoDescription = ref("");
+const lastSyncedTitle = ref("");
+const descriptionOllamaUnknown = ref<string[]>([]);
+const themeOllamaUnknown = ref<string[]>([]);
+const artStylePreset = ref("auto");
 const batchUsePalette = ref(true);
 const batchSlots = ref<BatchSlotConfig[]>([]);
 const batchRunSlots = ref<Array<{ category: Category; title: string }>>([]);
@@ -231,6 +312,8 @@ const generatingLocal = computed(() => generatingGarment.value || generatingBatc
 const baseOptions = computed(() => wardrobe.catalog.items.filter((i) => i.category === wardrobe.activeCategory && !i.source));
 const base = computed(() => wardrobe.catalog.items.find((i) => i.id === baseId.value));
 const selectedCategoryName = computed(() => categoryLabel(base.value?.category) || wardrobe.activeDefinition?.name || "");
+const presetHint = computed(() => artStyleHint(artStylePreset.value, `${batchOutfitName.value} ${batchTheme.value} ${name.value} ${description.value}`));
+const ollamaReady = computed(() => wardrobe.integrations?.ollama.ready === true);
 
 function categoryLabel(category: Category | undefined): string {
   if (!category) return "";
@@ -357,6 +440,13 @@ function switchToBatchMode() {
   if (generatingLocal.value) return;
   generationMode.value = "batch";
   ensureBatchInitialized(false);
+  scheduleThemeTranslation(batchOutfitName.value);
+}
+
+function switchToSingleMode() {
+  if (generatingLocal.value) return;
+  generationMode.value = "single";
+  scheduleDescriptionTranslation(name.value);
 }
 
 function nextUint32Seed() {
@@ -365,10 +455,140 @@ function nextUint32Seed() {
 
 function randomSeed() { seed.value = nextUint32Seed(); }
 
+function baseDescriptionFor(item: Garment): string {
+  return `${item.name_en}, ${item.material_en}, ${item.tags.slice(0, 2).join(", ")}`;
+}
+
+function autoDescriptionFor(item: Garment, title: string, translatedOverride?: string) {
+  const defaultName = `オリジナル${item.name}`;
+  const translated = translatedOverride ?? (
+    title.trim() && title.trim() !== defaultName
+      ? translateCoordinatePrompt(title)
+      : ""
+  );
+  return limitPromptTokens(mergePromptTokens(baseDescriptionFor(item), translated), 250);
+}
+
+function autoThemeForName(title: string, translatedOverride?: string) {
+  const styleName = wardrobe.catalog.styles.find((s) => s.id === wardrobe.style)?.en || "girly";
+  const translated = translatedOverride ?? translateCoordinatePrompt(title);
+  const styleToken = `${styleName.toLowerCase()} coordinate`;
+  if (translated && translated.toLowerCase().includes(styleName.toLowerCase())) {
+    return limitPromptTokens(translated, 160);
+  }
+  return limitPromptTokens(mergePromptTokens(translated, styleToken), 160);
+}
+
+const descriptionIsAuto = computed(() => {
+  const current = description.value.trim();
+  return !current || current === lastAutoDescription.value.trim();
+});
+const themeIsAuto = computed(() => {
+  const current = batchTheme.value.trim();
+  return !current || current === lastAutoTheme.value.trim();
+});
+const descriptionUnknown = computed(() => descriptionEngine.value === "ollama"
+  ? descriptionOllamaUnknown.value.slice(0, 6)
+  : translateJaToEnPrompt(name.value).untranslated.slice(0, 6));
+const themeUnknown = computed(() => themeEngine.value === "ollama"
+  ? themeOllamaUnknown.value.slice(0, 6)
+  : translateJaToEnPrompt(batchOutfitName.value).untranslated.slice(0, 6));
+
+function scheduleDescriptionTranslation(title: string) {
+  const item = base.value;
+  if (!item) {
+    resetDescriptionTranslation();
+    descriptionOllamaUnknown.value = [];
+    return;
+  }
+  const value = title.trim();
+  const defaultName = `オリジナル${item.name}`;
+  if (!value || value === defaultName || generatingLocal.value) {
+    resetDescriptionTranslation();
+    descriptionOllamaUnknown.value = [];
+    return;
+  }
+  void translateDescription(title, {
+    enabled: ollamaReady.value,
+    onLocal: () => {},
+    onOllama: (result) => {
+      if (generatingLocal.value || !descriptionIsAuto.value || name.value.trim() !== value) return;
+      const next = autoDescriptionFor(item, title, result.positive);
+      description.value = next;
+      lastAutoDescription.value = next;
+      descriptionOllamaUnknown.value = result.untranslated.slice(0, 6);
+    },
+  });
+}
+
+function scheduleThemeTranslation(title: string) {
+  const value = title.trim();
+  if (!value || generatingLocal.value) {
+    resetThemeTranslation();
+    themeOllamaUnknown.value = [];
+    return;
+  }
+  void translateTheme(title, {
+    enabled: ollamaReady.value,
+    onLocal: () => {},
+    onOllama: (result) => {
+      if (generatingLocal.value || !themeIsAuto.value || batchOutfitName.value.trim() !== value) return;
+      const next = autoThemeForName(title, result.positive);
+      batchTheme.value = next;
+      lastAutoTheme.value = next;
+      themeOllamaUnknown.value = result.untranslated.slice(0, 6);
+    },
+  });
+}
+
+function regenerateDescriptionFromName() {
+  if (generatingLocal.value || !base.value) return;
+  descriptionOllamaUnknown.value = [];
+  description.value = autoDescriptionFor(base.value, name.value);
+  lastAutoDescription.value = description.value;
+  scheduleDescriptionTranslation(name.value);
+}
+
+function regenerateThemeFromName() {
+  if (generatingLocal.value) return;
+  themeOllamaUnknown.value = [];
+  batchTheme.value = autoThemeForName(batchOutfitName.value);
+  lastAutoTheme.value = batchTheme.value;
+  scheduleThemeTranslation(batchOutfitName.value);
+}
+
+function syncBatchNameFromWardrobe() {
+  const title = wardrobe.title.trim();
+  const current = batchOutfitName.value.trim();
+  if (!current || current === lastSyncedTitle.value) {
+    batchOutfitName.value = title;
+    lastSyncedTitle.value = title;
+  }
+}
+
 function applyBaseDefaults(item: Garment | undefined) {
   if (!item) return;
+  resetDescriptionTranslation();
   name.value = `オリジナル${item.name}`;
-  description.value = `${item.name_en}, ${item.material_en}, ${item.tags.slice(0, 2).join(", ")}`;
+  descriptionOllamaUnknown.value = [];
+  description.value = autoDescriptionFor(item, name.value);
+  lastAutoDescription.value = description.value;
+}
+
+function addDescriptionSuggestion(token: string) {
+  if (generatingLocal.value) return;
+  cancelDescriptionTranslation();
+  descriptionOllamaUnknown.value = [];
+  description.value = appendPromptToken(description.value, token);
+  lastAutoDescription.value = "";
+}
+
+function addThemeSuggestion(token: string) {
+  if (generatingLocal.value) return;
+  cancelThemeTranslation();
+  themeOllamaUnknown.value = [];
+  batchTheme.value = appendPromptToken(batchTheme.value, token);
+  lastAutoTheme.value = "";
 }
 
 function ensureBaseInitialized(forceReset = false) {
@@ -385,9 +605,10 @@ function ensureBaseInitialized(forceReset = false) {
 }
 
 function ensureBatchInitialized(forceReset = false) {
-  const currentStyle = wardrobe.catalog.styles.find((s) => s.id === wardrobe.style);
-  const autoTheme = currentStyle?.en || "";
+  const autoTheme = autoThemeForName(batchOutfitName.value);
   if (!batchTheme.value.trim() || (forceReset && batchTheme.value === lastAutoTheme.value)) {
+    resetThemeTranslation();
+    themeOllamaUnknown.value = [];
     batchTheme.value = autoTheme;
     lastAutoTheme.value = autoTheme;
   }
@@ -418,6 +639,32 @@ watch(baseId, () => {
   applyBaseDefaults(base.value);
 });
 
+watch(name, (value) => {
+  if (generatingLocal.value || !base.value) return;
+  const current = description.value.trim();
+  if (current && current !== lastAutoDescription.value.trim()) return;
+  descriptionOllamaUnknown.value = [];
+  description.value = autoDescriptionFor(base.value, value);
+  lastAutoDescription.value = description.value;
+  if (generationMode.value === "single") scheduleDescriptionTranslation(value);
+});
+
+watch(batchOutfitName, (value) => {
+  if (generatingLocal.value) return;
+  const current = batchTheme.value.trim();
+  if (current && current !== lastAutoTheme.value.trim()) return;
+  themeOllamaUnknown.value = [];
+  batchTheme.value = autoThemeForName(value);
+  lastAutoTheme.value = batchTheme.value;
+  if (generationMode.value === "batch") scheduleThemeTranslation(value);
+});
+
+watch(ollamaReady, (ready) => {
+  if (!ready || !props.open || generatingLocal.value) return;
+  if (generationMode.value === "single") scheduleDescriptionTranslation(name.value);
+  else scheduleThemeTranslation(batchOutfitName.value);
+});
+
 watch(() => wardrobe.catalog.items.length, () => {
   if (!generatingLocal.value) {
     ensureBaseInitialized(false);
@@ -439,6 +686,7 @@ watch(() => props.open, async (open) => {
       generationMode.value = "single";
     }
     if (!generatingLocal.value) {
+      syncBatchNameFromWardrobe();
       ensureBaseInitialized(true);
       ensureBatchInitialized(!device.batchResults.length);
       if (!device.preview && !device.batchResults.length) randomSeed();
@@ -448,22 +696,35 @@ watch(() => props.open, async (open) => {
     }
     if (!dialog.value?.open) dialog.value?.showModal();
     device.detect();
+    void wardrobe.refreshIntegrations();
+    if (generationMode.value === "single") scheduleDescriptionTranslation(name.value);
+    else scheduleThemeTranslation(batchOutfitName.value);
   } else {
     pickerTargetSlot.value = null;
+    cancelDescriptionTranslation();
+    cancelThemeTranslation();
     if (basePickerDialog.value?.open) basePickerDialog.value.close();
     if (dialog.value?.open) dialog.value.close();
   }
 }, { immediate: true });
 
-function buildPromptForPart(item: Garment, descText: string, includePaletteColor: boolean): { prompt: string; colors: string[] } {
+onBeforeUnmount(() => {
+  cancelDescriptionTranslation();
+  cancelThemeTranslation();
+});
+
+function buildPromptForPart(item: Garment, descText: string, includePaletteColor: boolean, outfitName = ""): { prompt: string; colors: string[] } {
   const palette = wardrobe.catalog.palettes.find((p) => p.id === wardrobe.paletteId);
   const colorName = includePaletteColor ? (palette?.names[PALETTE_SLOT_INDEX[item.category]] || "soft pastel colors") : "";
   // Keep the clothing description first so CLIP's 77-token limit preserves it.
-  const parts = [descText.trim()];
-  if (colorName) parts.push(colorName);
-  parts.push("anime dress up game clothing asset, front view, cel shading, crisp outline, isolated garment only, plain white background");
+  // The shared composer always ends with the no-human / white-background guard.
   return {
-    prompt: parts.filter(Boolean).join(", "),
+    prompt: composeClothingPrompt({
+      description: descText,
+      name: outfitName,
+      paletteColor: colorName,
+      artStyle: artStylePreset.value,
+    }),
     colors: includePaletteColor && wardrobe.palette.length ? [...wardrobe.palette] : [...item.colors],
   };
 }
@@ -479,7 +740,7 @@ function batchPartInputForSlot(slot: BatchSlotConfig, slotSeed: number): BatchPa
   if (!baseItem) return null;
   const theme = batchTheme.value.trim();
   const partDesc = [theme, baseItem.name_en, baseItem.material_en].filter(Boolean).join(", ");
-  const { prompt, colors } = buildPromptForPart(baseItem, partDesc, batchUsePalette.value);
+  const { prompt, colors } = buildPromptForPart(baseItem, partDesc, batchUsePalette.value, batchOutfitName.value);
   return {
     base: { ...baseItem, name_en: partDesc },
     name: formatBatchItemName(baseItem.name),
@@ -493,7 +754,7 @@ function batchPartInputForSlot(slot: BatchSlotConfig, slotSeed: number): BatchPa
 function generate() {
   if (!base.value || generatingLocal.value) return;
   randomizeInvalidSeed(); added.value = false; addError.value = "";
-  const { prompt, colors } = buildPromptForPart(base.value, description.value, true);
+  const { prompt, colors } = buildPromptForPart(base.value, description.value, true, name.value);
   device.generate(prompt, seed.value, cutout.value, { base: { ...base.value, name_en: description.value.trim() }, prompt, name: name.value || base.value.name, colors });
 }
 

@@ -27,10 +27,17 @@ class Settings:
     r2_secret_access_key: str = os.getenv("R2_SECRET_ACCESS_KEY", "").strip()
     r2_prefix: str = (os.getenv("R2_PREFIX", "fashfolio") or "fashfolio").strip().strip("/") or "fashfolio"
     r2_daily_upload_mb: int = int(os.getenv("R2_DAILY_UPLOAD_MB", "128"))
+    reflens_api_url: str = os.getenv("REFLENS_API_URL", "").strip().rstrip("/")
+    reflens_jwt_secret: str = os.getenv("REFLENS_JWT_SECRET", "").strip()
+    reflens_db_path: str = os.getenv("REFLENS_DB_PATH", "").strip()
 
     @property
     def r2_configured(self) -> bool:
         return all((self.r2_account_id, self.r2_bucket_name, self.r2_access_key_id, self.r2_secret_access_key))
+
+    @property
+    def reflens_auth_configured(self) -> bool:
+        return bool(self.reflens_api_url or (self.reflens_jwt_secret and self.reflens_db_path))
 
 
 settings = Settings()

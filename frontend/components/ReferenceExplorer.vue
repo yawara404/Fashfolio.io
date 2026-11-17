@@ -147,7 +147,7 @@ const outdated = computed(
   () => !!providers.value.length && searchedId.value !== itemId.value,
 );
 watch(
-  () => wardrobe.activeCategory,
+  [() => wardrobe.activeCategory, () => wardrobe.selections[wardrobe.activeCategory]],
   () => {
     itemId.value =
       wardrobe.selections[wardrobe.activeCategory] ||

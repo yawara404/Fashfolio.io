@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import builtInCatalog from "~/data/wardrobe.json";
 import { readLocalGarments, writeLocalGarment, deleteLocalGarment } from "~/utils/localWardrobe";
 import { localPrompt } from "~/utils/localPrompt";
+import { translateCoordinatePrompt } from "~/utils/generationPrompt";
 import { catalogArtworkUrl } from "~/utils/catalogArtwork";
 import { useAvatar } from "~/composables/useAvatar";
 import { resolveStudioPose } from "~/data/studioPoses";
@@ -86,6 +87,7 @@ export const useWardrobe = defineStore("wardrobe", () => {
     custom_items: selectedItems.value.filter((i) => i.source === "local-diffusion").map(({ imageUrl, source, baseId, seed, generationPrompt, ...metadata }) => metadata),
     palette: [...palette.value],
     title: title.value,
+    title_en: translateCoordinatePrompt(title.value).slice(0, 500),
     notes: notes.value,
     style: style.value,
     garment_colors: Object.fromEntries(selectedItems.value.map(item => [item.id, paintOf(item)])),
@@ -211,7 +213,21 @@ export const useWardrobe = defineStore("wardrobe", () => {
       integrations.value = null;
     }
   }
+  function seedDefaults() {
+    if (!catalog.value.items.length) {
+      catalog.value = { ...builtInCatalog as Catalog, items: [...builtInCatalog.items as Garment[]] };
+    }
+    if (!selectedItems.value.length) applyDefault(avatar.config.gender || "girl");
+    if (!result.value && selectedItems.value.length) {
+      result.value = localPrompt(selectedItems.value, palette.value, title.value, notes.value, style.value, catalog.value);
+      generatedSignature.value = signature.value;
+    }
+  }
   async function initialize() {
+    if (ready) {
+      loading.value = false;
+      return;
+    }
     loading.value = true;
     error.value = "";
     let allowDraftRestore = true;
@@ -323,12 +339,17 @@ export const useWardrobe = defineStore("wardrobe", () => {
           "編集中のコーデを残しました。提案をもう一度実行できます。",
         );
       lastRecommendation.value = response;
-      selections.value = Object.fromEntries(
-        response.item_ids.flatMap((id) => {
-          const item = catalog.value.items.find((i) => i.id === id);
-          return item ? [[item.category, item.id]] : [];
-        }),
-      );
+      const lockedSet = new Set(locks.value);
+      const nextSelections: Partial<Record<Category, string>> = {};
+      for (const category of catalog.value.categories) {
+        if (lockedSet.has(category.id)) {
+          if (selections.value[category.id]) nextSelections[category.id] = selections.value[category.id];
+          continue;
+        }
+        const matchId = response.item_ids.find((id) => catalog.value.items.find((i) => i.id === id)?.category === category.id);
+        if (matchId) nextSelections[category.id] = matchId;
+      }
+      selections.value = nextSelections;
       notify(
         response.notice ||
           (response.engine === "ollama" ? "Ollamaからの提案：" : "") +
@@ -434,6 +455,9 @@ export const useWardrobe = defineStore("wardrobe", () => {
       if (selections.value[item.category] === id) {
         const next = { ...selections.value }; delete next[item.category]; selections.value = next;
       }
+      if (garmentColors.value[id]) {
+        const nextColors = { ...garmentColors.value }; delete nextColors[id]; garmentColors.value = nextColors;
+      }
       if (item.imageUrl) URL.revokeObjectURL(item.imageUrl);
       notify("生成した衣装を衣装棚から削除しました。");
     } catch { notify("衣装を削除できませんでした。ブラウザの保存設定を確認してください。"); }
@@ -484,6 +508,7 @@ export const useWardrobe = defineStore("wardrobe", () => {
     choosePalette,
     updateColor,
     refreshIntegrations,
+    seedDefaults,
     initialize,
     generate,
     recommend,

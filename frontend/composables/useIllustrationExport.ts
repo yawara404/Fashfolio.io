@@ -11,6 +11,7 @@ export function useIllustrationExport() {
   const exporting = ref(false);
   const error = ref("");
   const copied = ref(false);
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
   async function inlineImage(href: string) {
     const safe = localExportAsset(href, window.location.origin);
@@ -137,6 +138,8 @@ export function useIllustrationExport() {
       void image.catch(() => {});
       await navigator.clipboard.write([new ClipboardItem({ "image/png": image })]);
       copied.value = true;
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => { copied.value = false; }, 2000);
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : "画像をコピーできませんでした。PNGで保存してください。";
     } finally {

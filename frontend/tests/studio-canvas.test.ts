@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import { mount } from "@vue/test-utils";
+import CanvasItem from "../components/canvas/CanvasItem.vue";
 import { useStudioCanvas } from "../composables/useStudioCanvas";
 import { useCanvasTransform } from "../composables/useCanvasTransform";
 
@@ -64,5 +66,29 @@ describe("studio canvas editing", () => {
     transform.setViewport({ panX: Infinity, panY: NaN, zoom: NaN });
     expect(transform.panX.value).toBe(0);
     expect(transform.zoom.value).toBe(1);
+  });
+
+  it("shows a missing-garment placeholder when canvas garment artwork is deleted", () => {
+    const wrapper = mount(CanvasItem, {
+      props: {
+        item: {
+          id: "garment-missing-1",
+          kind: "garment",
+          x: 0,
+          y: 0,
+          width: 180,
+          height: 195,
+          rotation: 0,
+          z: 1,
+          label: "消した服",
+          itemId: "local-deleted",
+        },
+        selected: false,
+        zoom: 1,
+        imageUrl: "",
+      },
+    });
+    expect(wrapper.find(".canvas-item-missing").text()).toContain("削除された衣装");
+    wrapper.unmount();
   });
 });

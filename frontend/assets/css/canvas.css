@@ -10,6 +10,7 @@
 .canvas-item.is-selected { border-color: var(--accent); }
 .canvas-item-content { width: 100%; height: 100%; overflow: hidden; }
 .canvas-item-image { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.canvas-item-missing { width: 100%; height: 100%; display: grid; place-items: center; padding: 12px; text-align: center; font-size: 10px; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 4px; background: var(--raised); }
 .canvas-mannequin { display: block; width: 100%; height: 100%; max-width: none; pointer-events: none; }
 .canvas-item-label { position: absolute; top: calc(100% + 5px * var(--inv)); left: 0; display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; white-space: nowrap; transform: scale(var(--inv)); transform-origin: top left; max-width: 260px; }
 .canvas-item-label span { overflow: hidden; text-overflow: ellipsis; }
@@ -52,7 +53,7 @@
 .canvas-settings p { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 10px; line-height: 2; color: var(--muted); }
 @media (max-width: 600px) {
   .canvas-stage { min-height: 440px; flex-basis: 440px; }
-  .canvas-controls { gap: 0; padding: 4px; bottom: 32px; }
+  .canvas-controls { gap: 0; padding: 4px; bottom: 32px; max-width: calc(100% - 16px); }
   .canvas-controls button { width: 28px; height: 34px; }
   .canvas-controls-divider { margin: 0 2px; }
   .canvas-controls button.canvas-zoom-value { width: 43px; }

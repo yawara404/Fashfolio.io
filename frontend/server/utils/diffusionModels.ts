@@ -29,7 +29,64 @@ async function acquire(path:string,size:number) {
   }
   throw new Error("Model preparation is still running; retry shortly");
 }
-export function diffusionModelFile(name:keyof typeof DIFFUSION_MODELS, directory=process.env.FASHFOLIO_MODEL_CACHE || resolve(process.cwd(),".cache/diffusion-models")) {
+export function modelCacheDir() {
+  return process.env.FASHFOLIO_MODEL_CACHE || resolve(process.cwd(), ".cache/diffusion-models");
+}
+export async function cachedModelPath(name: keyof typeof DIFFUSION_MODELS, directory = modelCacheDir()) {
+  const model = DIFFUSION_MODELS[name];
+  const path = join(directory, `${DIFFUSION_REVISION}-${name}.onnx`);
+  return (await fileSize(path)) === model.size ? path : null;
+}
+const mirroredModels = new Set<string>();
+const pendingMirrors = new Map<string, Promise<boolean>>();
+export function mirrorModelToR2(
+  apiBase: string,
+  name: keyof typeof DIFFUSION_MODELS,
+  directory = modelCacheDir(),
+): Promise<boolean> {
+  if (mirroredModels.has(name)) return Promise.resolve(true);
+  const existing = pendingMirrors.get(name);
+  if (existing) return existing;
+  const task = (async () => {
+    const filePath = await cachedModelPath(name, directory);
+    if (!filePath) return false;
+    const target = `${apiBase}/api/storage/models/${DIFFUSION_REVISION}/${name}`;
+    try {
+      let response = await fetch(target, { method: "POST", signal: AbortSignal.timeout(10000) });
+      if (response.status === 422) {
+        const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
+        response = await fetch(target, {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: stream,
+          duplex: "half",
+        } as RequestInit & { duplex: "half" });
+      }
+      if (!response.ok) return false;
+      mirroredModels.add(name);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      pendingMirrors.delete(name);
+    }
+  })();
+  pendingMirrors.set(name, task);
+  return task;
+}
+export async function syncCachedModelsToR2(apiBase: string, directory = modelCacheDir()) {
+  const keys = Object.keys(DIFFUSION_MODELS) as Array<keyof typeof DIFFUSION_MODELS>;
+  const cached: Array<keyof typeof DIFFUSION_MODELS> = [];
+  for (const key of keys) {
+    if (await cachedModelPath(key, directory)) cached.push(key);
+  }
+  const queued: string[] = [];
+  for (const key of cached) {
+    if (await mirrorModelToR2(apiBase, key, directory)) queued.push(key);
+  }
+  return queued;
+}
+export function diffusionModelFile(name:keyof typeof DIFFUSION_MODELS, directory=modelCacheDir()) {
   const model=DIFFUSION_MODELS[name], path=join(directory,`${DIFFUSION_REVISION}-${name}.onnx`);
   if(!pending.has(path)) {
     const job=(async()=>{

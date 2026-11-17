@@ -298,6 +298,7 @@ import { useWardrobe } from "~/composables/useWardrobe";
 import { cloudStorageState, flushCloudWorkspace } from "~/utils/cloudStorage";
 defineProps<{ mode: "outfit" | "try-on" }>();
 const wardrobe = useWardrobe();
+if (!wardrobe.catalog.items.length) wardrobe.seedDefaults();
 const mobilePane = ref<"coordinate" | "main" | "details">("main");
 const view = ref<"atlas" | "references">("atlas");
 const savedDialog = ref<HTMLDialogElement | null>(null);
@@ -332,6 +333,6 @@ function closeOnBackdrop(event: MouseEvent) {
 const fittingStudio = ref<InstanceType<typeof TryOnStudio> | null>(null);
 const generationOpen = ref(false);
 onMounted(() => {
-  if (!wardrobe.catalog.items.length) wardrobe.initialize();
+  wardrobe.initialize();
 });
 </script>

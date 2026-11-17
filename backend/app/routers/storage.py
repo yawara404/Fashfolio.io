@@ -2,14 +2,29 @@ import asyncio
 from collections import OrderedDict
 import json
 import math
+import os
+from pathlib import Path
 import re
 import struct
+import tempfile
 import time
+import zlib
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from starlette.concurrency import run_in_threadpool
-from app.core.config import settings
-from app.services.object_storage import r2_client, private_key, get_object, model_url
+from app.core.config import BACKEND_DIR, settings
+from app.services.object_storage import (
+    MODEL_SIZES,
+    head_object,
+    model_object_key,
+    model_url,
+    private_key,
+    get_object,
+    r2_client,
+    upload_model_file,
+    user_key,
+)
+from app.services.reflens_auth import resolve_user_from_header
 
 router = APIRouter(prefix="/storage")
 IMAGE_LIMIT = 8 * 1024 * 1024
@@ -18,6 +33,44 @@ _upload_bytes = 0
 _upload_day = 0
 _requests: OrderedDict[str, list[float]] = OrderedDict()
 _gate = asyncio.Lock()
+_model_sync_tasks: dict[tuple[str, str], asyncio.Task] = {}
+
+
+def _resolve_local_model_path(revision: str, name: str) -> Path | None:
+    if not re.fullmatch(r"[a-f0-9]{40}", revision) or name not in MODEL_SIZES:
+        return None
+    expected_size = MODEL_SIZES[name]
+    roots = [
+        Path(os.getenv("FASHFOLIO_MODEL_CACHE")) if os.getenv("FASHFOLIO_MODEL_CACHE") else None,
+        BACKEND_DIR.parent / "frontend" / ".cache" / "diffusion-models",
+    ]
+    filename = f"{revision}-{name}.onnx"
+    for root in roots:
+        if not root:
+            continue
+        candidate = (root / filename).resolve()
+        try:
+            candidate.relative_to(root.resolve())
+        except ValueError:
+            continue
+        if candidate.is_file() and candidate.stat().st_size == expected_size:
+            return candidate
+    return None
+
+
+def _require_local_mirror_client(request: Request):
+    host = request.client.host if request.client else "unknown"
+    if host not in ("127.0.0.1", "::1", "localhost", "testclient"):
+        raise HTTPException(403, "Model mirroring is restricted to the local server")
+
+
+async def _run_model_upload(revision: str, name: str, path: Path, cleanup: Path | None = None) -> dict:
+    try:
+        return await run_in_threadpool(upload_model_file, revision, name, path)
+    finally:
+        if cleanup is not None:
+            cleanup.unlink(missing_ok=True)
+        _model_sync_tasks.pop((revision, name), None)
 
 
 def enabled():
@@ -25,9 +78,30 @@ def enabled():
         raise HTTPException(503, "Cloud storage is not configured")
 
 
-def key_for(request: Request, suffix: str, cache: bool = False):
+async def key_for(request: Request, suffix: str, cache: bool = False):
     enabled()
+    user = await resolve_user_from_header(request.headers.get("authorization"))
+    if user is not None:
+        return user_key(user.id, suffix, cache)
     return private_key(request.headers.get("x-fashfolio-vault"), suffix, cache)
+
+
+def _gzip_encode(data: bytes) -> bytes:
+    comp = zlib.compressobj(level=6, wbits=31)
+    return comp.compress(data) + comp.flush()
+
+
+def _gzip_decode(data: bytes, limit: int) -> bytes:
+    if len(data) >= 2 and data[:2] == b"\x1f\x8b":
+        decomp = zlib.decompressobj(wbits=31)
+        out = decomp.decompress(data, limit + 1)
+        if len(out) > limit or decomp.unconsumed_tail:
+            raise ValueError("oversized document")
+        out += decomp.flush()
+        if len(out) > limit:
+            raise ValueError("oversized document")
+        return out
+    return data
 
 
 def rate_limit(request: Request):
@@ -54,7 +128,13 @@ async def limited_body(request: Request, limit: int):
     return b"".join(chunks)
 
 
-async def put(key: str, body: bytes, content_type: str, metadata=None):
+async def put(
+    key: str,
+    body: bytes,
+    content_type: str,
+    metadata=None,
+    content_encoding: str | None = None,
+):
     global _upload_bytes, _upload_day
     async with _gate:
         day = int(time.time() // 86400)
@@ -64,8 +144,17 @@ async def put(key: str, body: bytes, content_type: str, metadata=None):
             raise HTTPException(429, "Daily cloud upload limit reached")
         _upload_bytes += len(body)
     try:
-        await run_in_threadpool(lambda: r2_client().put_object(Bucket=settings.r2_bucket_name, Key=key,
-            Body=body, ContentType=content_type, CacheControl="private, max-age=86400" if content_type == "image/png" else "no-store", Metadata=metadata or {}))
+        params = {
+            "Bucket": settings.r2_bucket_name,
+            "Key": key,
+            "Body": body,
+            "ContentType": content_type,
+            "CacheControl": "private, max-age=86400" if content_type == "image/png" else "no-store",
+            "Metadata": metadata or {},
+        }
+        if content_encoding:
+            params["ContentEncoding"] = content_encoding
+        await run_in_threadpool(lambda: r2_client().put_object(**params))
     except Exception:
         raise HTTPException(503, "Cloud save failed; the local copy is unchanged") from None
 
@@ -84,7 +173,7 @@ async def status(check: bool = False):
 
 @router.get("/workspace")
 async def read_workspace(request: Request):
-    key = key_for(request, "workspace.json")
+    key = await key_for(request, "workspace.json")
     try:
         record = await run_in_threadpool(get_object, key)
         if record is None:
@@ -97,7 +186,8 @@ async def read_workspace(request: Request):
         body = await run_in_threadpool(read)
         if len(body) > DOCUMENT_LIMIT:
             raise ValueError("oversized document")
-        return Response(body, media_type="application/json", headers={"Cache-Control": "no-store"})
+        plain = _gzip_decode(body, DOCUMENT_LIMIT)
+        return Response(plain, media_type="application/json", headers={"Cache-Control": "no-store", "Vary": "X-Fashfolio-Vault, Authorization"})
     except HTTPException:
         raise
     except Exception:
@@ -106,7 +196,7 @@ async def read_workspace(request: Request):
 
 @router.put("/workspace")
 async def write_workspace(request: Request):
-    key = key_for(request, "workspace.json")
+    key = await key_for(request, "workspace.json")
     rate_limit(request)
     body = await limited_body(request, DOCUMENT_LIMIT)
     try:
@@ -115,19 +205,21 @@ async def write_workspace(request: Request):
             raise ValueError()
     except (ValueError, UnicodeError):
         raise HTTPException(422, "Invalid workspace document") from None
-    await put(key, body, "application/json")
-    return {"saved": True}
+    compact = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    compressed = _gzip_encode(compact)
+    await put(key, compressed, "application/json", content_encoding="gzip")
+    return {"saved": True, "compressed_bytes": len(compressed), "raw_bytes": len(compact)}
 
 
-def asset_key(request: Request, digest: str, cache: bool = False):
+async def asset_key(request: Request, digest: str, cache: bool = False):
     if not re.fullmatch(r"[a-f0-9]{64}", digest):
         raise HTTPException(404, "Unknown asset")
-    return key_for(request, f"assets/{digest}.png", cache)
+    return await key_for(request, f"assets/{digest}.png", cache)
 
 
 @router.put("/assets/{digest}")
 async def write_asset(digest: str, request: Request, cache: bool = False):
-    key = asset_key(request, digest, cache)
+    key = await asset_key(request, digest, cache)
     rate_limit(request)
     if request.headers.get("content-type", "").split(";")[0].strip().lower() != "image/png":
         raise HTTPException(415, "Only PNG images can be cached")
@@ -153,7 +245,7 @@ async def write_asset(digest: str, request: Request, cache: bool = False):
 
 @router.get("/assets/{digest}")
 async def read_asset(digest: str, request: Request, cache: bool = False):
-    key = asset_key(request, digest, cache)
+    key = await asset_key(request, digest, cache)
     try:
         record = await run_in_threadpool(get_object, key)
         if record is None:
@@ -166,7 +258,7 @@ async def read_asset(digest: str, request: Request, cache: bool = False):
         body = await run_in_threadpool(read)
         if len(body) > IMAGE_LIMIT:
             raise ValueError("oversized image")
-        headers = {"Cache-Control": "private, max-age=86400", "Vary": "X-Fashfolio-Vault", "X-Content-Type-Options": "nosniff"}
+        headers = {"Cache-Control": "private, max-age=86400", "Vary": "X-Fashfolio-Vault, Authorization", "X-Content-Type-Options": "nosniff"}
         if record.get("Metadata", {}).get("bounds"):
             headers["X-Fashfolio-Bounds"] = record["Metadata"]["bounds"]
         return Response(body, media_type="image/png", headers=headers)
@@ -178,7 +270,7 @@ async def read_asset(digest: str, request: Request, cache: bool = False):
 
 @router.delete("/assets/{digest}")
 async def delete_asset(digest: str, request: Request, cache: bool = False):
-    key = asset_key(request, digest, cache)
+    key = await asset_key(request, digest, cache)
     rate_limit(request)
     try:
         await run_in_threadpool(lambda: r2_client().delete_object(Bucket=settings.r2_bucket_name, Key=key))
@@ -192,3 +284,46 @@ def model(revision: str, name: str):
     enabled()
     # The Nuxt model proxy follows this on the server; the private bucket stays private.
     return RedirectResponse(model_url(revision, name), status_code=307, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/models/{revision}/{name}")
+async def sync_model(revision: str, name: str, request: Request, wait: bool = False):
+    enabled()
+    _require_local_mirror_client(request)
+    key = model_object_key(revision, name)
+    expected_size = MODEL_SIZES[name]
+    existing = await run_in_threadpool(head_object, key)
+    if existing and existing.get("ContentLength") == expected_size:
+        return {"saved": True, "already_exists": True, "size": expected_size}
+
+    cache_key = (revision, name)
+    active = _model_sync_tasks.get(cache_key)
+    if active and not active.done():
+        return await active if wait else {"queued": True, "status": "syncing"}
+
+    local_path = _resolve_local_model_path(revision, name)
+    temp_path: Path | None = None
+    if local_path is None:
+        # Support streamed upload from Nuxt when Nuxt and Python do not share disk cache.
+        total = 0
+        fd, raw_tmp = tempfile.mkstemp(prefix=f"{revision}-{name}-", suffix=".onnx.part")
+        temp_path = Path(raw_tmp)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                async for chunk in request.stream():
+                    total += len(chunk)
+                    if total > expected_size:
+                        raise HTTPException(413, "Model object exceeds the expected size")
+                    handle.write(chunk)
+            if total != expected_size:
+                raise HTTPException(422, "Local model cache not found and upload incomplete")
+        except Exception:
+            temp_path.unlink(missing_ok=True)
+            raise
+        local_path = temp_path
+
+    task = asyncio.create_task(_run_model_upload(revision, name, local_path, cleanup=temp_path))
+    _model_sync_tasks[cache_key] = task
+    if wait:
+        return await task
+    return {"queued": True, "status": "syncing"}

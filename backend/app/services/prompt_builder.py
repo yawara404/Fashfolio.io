@@ -49,6 +49,7 @@ def build_prompt(req: OutfitRequest, items: list[Garment]) -> dict:
     )
     labels = {c["id"]: c["name"] for c in CATEGORIES}
     tags = list(dict.fromkeys(tag for item in items for tag in item.tags))
+    title_tags = [tag.strip() for tag in req.title_en.split(",") if tag.strip()]
     descriptions = [f"{item.name_en}, {item.material_en} texture" + (
         ", fabric color " + color_name(req.garment_colors[item.id][0]) + " " + req.garment_colors[item.id][0]
         + ", trim color " + req.garment_colors[item.id][1] + ", detail color " + req.garment_colors[item.id][2]
@@ -56,11 +57,12 @@ def build_prompt(req: OutfitRequest, items: list[Garment]) -> dict:
     positive = ", ".join(
         [
             style["en"].lower() + " fashion",
-            "full body outfit reference",
+            "isolated outfit reference, no humans, no person, no body",
             *descriptions,
             *[tag.replace("_", " ") for tag in tags],
+            *title_tags,
             "color palette: " + ", ".join(color_name(c) for c in colors),
-            "clear garment construction",
+            "clear garment construction, plain white background, no scenery",
         ]
     )
     lines = [
@@ -76,7 +78,7 @@ def build_prompt(req: OutfitRequest, items: list[Garment]) -> dict:
     return {
         "brief_ja": "\n".join(lines),
         "positive": positive,
-        "negative": "blurry clothing details, inconsistent garment construction, missing accessories, distorted buttons, text, watermark",
+        "negative": "human, person, face, hands, body parts, background scenery, blurry clothing details, inconsistent garment construction, missing accessories, distorted buttons, text, watermark",
         "tags": tags,
         "references": reference_links(items),
         "palette": colors,

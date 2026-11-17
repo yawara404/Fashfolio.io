@@ -18,6 +18,7 @@ import {
 import { deleteLocalGarment, readLocalGarments, writeLocalGarment } from "../utils/localWardrobe";
 import { readPoseRender, writePoseRender } from "../utils/poseRenderCache";
 import { modelRange } from "../server/utils/modelRange";
+import { DIFFUSION_MODELS, DIFFUSION_REVISION, cachedModelPath, mirrorModelToR2, syncCachedModelsToR2 } from "../server/utils/diffusionModels";
 import catalog from "../data/wardrobe.json";
 import type { Garment } from "../types/wardrobe";
 
@@ -259,5 +260,40 @@ describe("Cloudflare R2 workspace and cache sync", () => {
     expect(modelRange("bytes=1000-1001", 1000)).toBe("invalid");
     expect(modelRange("bytes=200-100", 1000)).toBe("invalid");
     expect(modelRange("items=0-10", 1000)).toBe("invalid");
+  });
+
+  it("mirrors locally cached ONNX models to R2 without requiring browser credentials", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), "fashfolio-model-sync-"));
+    const vaePath = path.join(tmpdir, `${DIFFUSION_REVISION}-vae.onnx`);
+    fs.writeFileSync(vaePath, Buffer.alloc(0));
+    fs.truncateSync(vaePath, DIFFUSION_MODELS.vae.size);
+    const partialPath = path.join(tmpdir, `${DIFFUSION_REVISION}-text.onnx`);
+    fs.writeFileSync(partialPath, Buffer.from("incomplete"));
+
+    try {
+      expect(await cachedModelPath("vae", tmpdir)).toBe(vaePath);
+      expect(await cachedModelPath("text", tmpdir)).toBeNull();
+
+      const mirroredCalls: string[] = [];
+      vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          mirroredCalls.push(url);
+          return new Response(JSON.stringify({ queued: true, status: "syncing" }), { status: 200 });
+        }
+        return new Response("", { status: 404 });
+      }));
+
+      const synced = await syncCachedModelsToR2("http://127.0.0.1:8085", tmpdir);
+      expect(synced).toEqual(["vae"]);
+      expect(mirroredCalls).toEqual([`http://127.0.0.1:8085/api/storage/models/${DIFFUSION_REVISION}/vae`]);
+      // Subsequent call hits the in-process deduplicated mirror cache.
+      expect(await mirrorModelToR2("http://127.0.0.1:8085", "vae", tmpdir)).toBe(true);
+      expect(mirroredCalls).toHaveLength(1);
+    } finally {
+      fs.rmSync(tmpdir, { recursive: true, force: true });
+    }
   });
 });

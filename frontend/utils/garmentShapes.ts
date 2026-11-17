@@ -1261,6 +1261,22 @@ export function garmentImagePlacements(
       },
     ];
   }
+  if (category === "socks") {
+    return (["left", "right"] as const).map((key) => {
+      const leg = rig.legs[key];
+      const foot = rig.feet[key];
+      const topY = leg.mid.y - unit * 0.08;
+      return {
+        key: `socks-${key}`,
+        box: box(
+          Math.min(leg.end.x, foot.ankle.x) - leg.midW * 1.3,
+          topY,
+          Math.abs(foot.ankle.x - leg.end.x) + leg.midW * 2.6,
+          foot.groundY - topY,
+        ),
+      };
+    });
+  }
   if (category === "shoes") {
     return (["left", "right"] as const).map((key) => {
       const foot = rig.feet[key];
