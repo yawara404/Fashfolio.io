@@ -6,7 +6,8 @@ import { localPrompt } from "~/utils/localPrompt";
 import { catalogArtworkUrl } from "~/utils/catalogArtwork";
 import { useAvatar } from "~/composables/useAvatar";
 import { resolveStudioPose } from "~/data/studioPoses";
-import { garmentPaint, isHexColor, canPaintGarment, sanitizeGarmentColors } from "~/utils/garmentColors";
+import { garmentPaint, canPaintGarment, sanitizeGarmentColors } from "~/utils/garmentColors";
+import { isHexColor } from "~/utils/color";
 import { hydrateCloudWorkspace, scheduleCloudSync } from "~/utils/cloudStorage";
 import type {
   Garment,
@@ -412,14 +413,17 @@ export const useWardrobe = defineStore("wardrobe", () => {
       notify("保存一覧を更新できませんでした。");
     }
   }
-  async function addGenerated(item: Garment, image: Blob) {
+  async function addGenerated(item: Garment, image: Blob, options: { quiet?: boolean; switchCategory?: boolean } = {}) {
     await writeLocalGarment({ item, image });
     const stored = { ...item, imageUrl: URL.createObjectURL(image) };
     catalog.value.items.push(stored);
-    activeCategory.value = item.category;
-    query.value = ""; styleFilter.value = false;
+    if (options.switchCategory !== false) {
+      activeCategory.value = item.category;
+      query.value = ""; styleFilter.value = false;
+    }
     choose(stored);
-    notify("生成した衣装をこのブラウザの衣装棚に保存しました。");
+    if (!options.quiet) notify("生成した衣装をこのブラウザの衣装棚に保存しました。");
+    return stored;
   }
   async function removeGenerated(id: string) {
     const item = catalog.value.items.find((i) => i.id === id && i.source);

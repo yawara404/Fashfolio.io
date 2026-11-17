@@ -1,7 +1,7 @@
 import type { Garment, Category } from "~/types/wardrobe";
+import { isHexColor } from "~/utils/color";
 
 const slots: Record<Category, number> = { inner: 1, underwear: 1, socks: 1, tops: 0, outer: 1, bottoms: 2, shoes: 4, head: 3, bag: 0, jewelry: 3 };
-export const isHexColor = (value: unknown): value is string => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
 
 /** Paint authored fills only: ink, texture, opacity and rigid detail geometry stay intact. */
 export function garmentPaint(item: Garment, palette: string[], recolor = true): string[] {

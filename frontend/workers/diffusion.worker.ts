@@ -143,7 +143,20 @@ async function generate(prompt: string, seed: number, cutout: boolean) {
     const decoded = await sessions.vae!.run({ latent_sample: own(input("vae", "latent_sample", eulerStep(noise, predictionData), [1, 4, 64, 64])) });
     const sample = own(decoded.sample!);
     const rgba = decodePixels(await floats(sample));
-    const { pixels, crop } = cutout ? removeWhiteBackdrop(rgba, 512, 512) : { pixels: rgba, crop: { x: 0, y: 0, width: 512, height: 512 } };
+    let pixels: Uint8ClampedArray;
+    let crop: { x: number; y: number; width: number; height: number };
+    if (cutout) {
+      try {
+        ({ pixels, crop } = removeWhiteBackdrop(rgba, 512, 512));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        send({ type: "error", message, recoverable: true });
+        return;
+      }
+    } else {
+      pixels = rgba;
+      crop = { x: 0, y: 0, width: 512, height: 512 };
+    }
     const full = new OffscreenCanvas(512, 512);
     full.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(pixels), 512, 512), 0, 0);
     const canvas = new OffscreenCanvas(crop.width, crop.height);
