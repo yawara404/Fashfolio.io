@@ -8,7 +8,7 @@
     <div v-if="!avatar.browsingPoses && source === 'preset'" class="fitting-audience-tabs" role="group" aria-label="プリセットの対象">
       <button v-for="option in audiences" :key="option.id" :class="{ active: wardrobe.presetAudience === option.id }" :aria-pressed="wardrobe.presetAudience === option.id" @click="wardrobe.presetAudience = option.id">{{ option.name }}</button>
     </div>
-    <label class="fitting-search"><Search :size="14" /><input v-model="query" type="search" :placeholder="avatar.browsingPoses ? 'ポーズを検索' : '衣装を検索'" :aria-label="avatar.browsingPoses ? 'ポーズを検索' : '試着する衣装を検索'" /></label>
+    <div class="fitting-search"><Search :size="14" /><input v-model="query" type="search" :placeholder="avatar.browsingPoses ? 'ポーズを検索' : '衣装を検索'" :aria-label="avatar.browsingPoses ? 'ポーズを検索' : '試着する衣装を検索'" /><button v-if="query" class="search-clear" type="button" aria-label="検索キーワードを消す" @click="query = ''"><X :size="14" /></button></div>
     <div class="fitting-library-body">
       <nav class="fitting-category-rail" aria-label="試着する衣装の部位">
         <button v-for="category in wardrobe.catalog.categories" :key="category.id" :class="{ active: !avatar.browsingPoses && wardrobe.activeCategory === category.id }" :aria-label="category.name" :aria-pressed="!avatar.browsingPoses && wardrobe.activeCategory === category.id" @click="avatar.browsingPoses = false; wardrobe.activeCategory = category.id; query = ''">
@@ -44,7 +44,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { Shirt, Layers2, LayoutGrid, Footprints, Glasses, ShoppingBag, Gem, Search, CircleSlash, Check, Plus, MousePointer2, Accessibility } from "lucide-vue-next";
+import { Shirt, Layers2, LayoutGrid, Footprints, Glasses, ShoppingBag, Gem, Search, CircleSlash, Check, Plus, MousePointer2, Accessibility, X } from "lucide-vue-next";
 import PosePicker from "~/components/PosePicker.vue";
 import { useAvatar } from "~/composables/useAvatar";
 import { studioPoses } from "~/data/studioPoses";
@@ -57,7 +57,7 @@ defineEmits<{ generate: []; "add-to-canvas": [item: Garment] }>();
 const source = ref<"preset" | "local">("preset");
 const query = ref("");
 const audiences:{id:PresetAudience;name:string}[] = [{id:"womens",name:"レディース"},{id:"mens",name:"メンズ"},{id:"unisex",name:"共用"}];
-watch(() => avatar.browsingPoses, () => { query.value = ""; });
+watch([() => avatar.browsingPoses, () => wardrobe.activeCategory], () => { query.value = ""; });
 watch(() => wardrobe.selections[wardrobe.activeCategory], (selectedId) => {
   if (!selectedId) return;
   const selectedItem = wardrobe.catalog.items.find(item => item.id === selectedId);

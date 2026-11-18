@@ -8,7 +8,7 @@
     <section class="intro-bar">
       <div>
         <div class="intro-eyebrow"><span />FASHFOLIO STUDIO</div>
-        <h1 v-if="mode === 'outfit'">衣装・配色を組み立てる</h1>
+        <h1 v-if="mode === 'outfit'"><span class="desktop-title">衣装・配色を組み立てる</span><span class="mobile-title">衣装・配色を組む</span></h1>
         <h1 v-else>試着・キャンバス</h1>
         <p v-if="mode === 'outfit'">
           衣装と色を組み合わせて、キャラクターの装いを考える。
@@ -30,7 +30,7 @@
           :disabled="!wardrobe.selectedItems.length"
           @click="wardrobe.save()"
         >
-          <Bookmark :size="14" />このコーデを保存
+          <Bookmark :size="14" /><span class="desktop-title">このコーデを保存</span><span class="mobile-title">コーデを保存</span>
         </button>
       </div>
     </section>
@@ -49,7 +49,7 @@
       :aria-busy="wardrobe.loading"
     >
       <TryOnWardrobe v-if="mode === 'try-on'" @generate="generationOpen = true" @add-to-canvas="fittingStudio?.addGarment($event); mobilePane = 'main'" />
-      <OutfitPanel v-else />
+      <OutfitPanel v-else @select-category="mobilePane = 'main'" />
       <TryOnStudio v-if="mode === 'try-on'" ref="fittingStudio" />
       <main v-else class="wardrobe-main">
         <div class="wardrobe-topline">
@@ -103,7 +103,7 @@
                 type="search"
                 :aria-label="`${wardrobe.activeDefinition?.name || 'パーツ'}を検索`"
                 placeholder="名前・素材・タグから探す"
-              />
+              /><button v-if="wardrobe.query" class="search-clear" type="button" aria-label="衣装の検索キーワードを消す" @click="wardrobe.query = ''"><X :size="15" /></button>
             </div>
             <label class="style-select"
               ><span class="sr-only">コーデのスタイル</span
@@ -169,7 +169,7 @@
         >
         <ReferenceExplorer v-else />
       </main>
-      <OutfitPanel v-if="mode === 'try-on'" inspector @select-pose="mobilePane = 'details'" /><PromptPanel v-else />
+      <OutfitPanel v-if="mode === 'try-on'" inspector @select-pose="mobilePane = 'details'" @select-category="mobilePane = 'details'" /><PromptPanel v-else />
     </div>
     <nav class="mobile-pane-nav" aria-label="作業パネル">
       <button :class="{ active: mobilePane === 'coordinate' }" :aria-pressed="mobilePane === 'coordinate'" @click="mobilePane = 'coordinate'"><Palette :size="18" /><span>コーデ・配色</span></button>

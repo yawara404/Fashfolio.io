@@ -1,5 +1,6 @@
 const CHUNK = 64 * 1024 * 1024;
 export const MODEL_DIRECTORY = "fashfolio-diffusion-models-v1";
+export const MODEL_CACHE_NAME = "fashfolio-sd-turbo-v1";
 type Progress = (received: number, total: number, saving?: boolean) => void;
 interface ModelFileAccess { getSize():number; read(data:Uint8Array,options:{at:number}):number; write(data:Uint8Array,options:{at:number}):number; truncate(size:number):void; flush():void; close():void }
 
@@ -14,6 +15,38 @@ async function openSource(url:string,sources:string[]|undefined,received:number)
     } catch(error) {failure=error;}
   }
   throw failure;
+}
+
+/** Check whether a complete model file is already persisted locally. */
+export async function hasCachedModel(url: string, size: number): Promise<boolean> {
+  let cache: Cache | undefined;
+  try { cache = await caches.open(MODEL_CACHE_NAME); } catch { /* Cache Storage can be disabled. */ }
+  if (cache) {
+    try {
+      const manifest = await cache.match(`${url}?fashfolio-manifest=1`);
+      if (manifest) {
+        const meta = await manifest.json() as { size?: number; parts?: number };
+        if (meta.size === size && Number.isInteger(meta.parts) && (meta.parts ?? 0) > 0) {
+          let complete = true;
+          for (let i = 0; i < meta.parts!; i++) {
+            if (!(await cache.match(`${url}?fashfolio-chunk=${i}`))) { complete = false; break; }
+          }
+          if (complete) return true;
+        }
+      }
+      // Small files are stored as one complete response only after the size check.
+      if (await cache.match(url)) return true;
+    } catch { /* Fall through to OPFS. */ }
+  }
+  try {
+    const root = await navigator.storage.getDirectory();
+    const directory = await root.getDirectoryHandle(MODEL_DIRECTORY);
+    const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(url)));
+    const name = [...hash].map((value) => value.toString(16).padStart(2, "0")).join("") + ".onnx";
+    const handle = await directory.getFileHandle(name);
+    const file = await handle.getFile();
+    return file.size === size;
+  } catch { return false; }
 }
 
 /** OPFS avoids Cache API's large-model storage failures on Chromium. */
@@ -34,7 +67,14 @@ export async function fileModel(url:string,size:number,cache:Cache|undefined,pro
     if (access.getSize()>size) access.truncate(0);
     const stored=access.getSize();
     while(received<stored) { const n=access.read(bytes.subarray(received,Math.min(stored,received+CHUNK)),{at:received}); if(!n) throw new Error("保存したモデルを読み込めません。");received+=n;progress(received,size); }
-    // Migrate any successful bounded Cache entries without downloading again.
+    // Migrate any successful Cache entries without downloading again.
+    if (!received && cache) {
+      const whole=await cache.match(url);
+      if(whole) {
+        const data=new Uint8Array(await whole.arrayBuffer());
+        if(data.length===size) { write(data,0);bytes.set(data,0);received=size;access.flush();progress(received,size); }
+      }
+    }
     if (!received && cache) {
       const manifest=await cache.match(`${url}?fashfolio-manifest=1`);
       const meta=manifest ? await manifest.json() as {size:number;parts:number} : null;

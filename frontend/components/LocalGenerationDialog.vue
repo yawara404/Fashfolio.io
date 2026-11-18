@@ -487,9 +487,12 @@ const themeIsAuto = computed(() => {
   const current = batchTheme.value.trim();
   return !current || current === lastAutoTheme.value.trim();
 });
-const descriptionUnknown = computed(() => descriptionEngine.value === "ollama"
-  ? descriptionOllamaUnknown.value.slice(0, 6)
-  : translateJaToEnPrompt(name.value).untranslated.slice(0, 6));
+const descriptionUnknown = computed(() => {
+  if (base.value && name.value.trim() === `オリジナル${base.value.name}`) return [];
+  return descriptionEngine.value === "ollama"
+    ? descriptionOllamaUnknown.value.slice(0, 6)
+    : translateJaToEnPrompt(name.value).untranslated.slice(0, 6);
+});
 const themeUnknown = computed(() => themeEngine.value === "ollama"
   ? themeOllamaUnknown.value.slice(0, 6)
   : translateJaToEnPrompt(batchOutfitName.value).untranslated.slice(0, 6));
@@ -695,6 +698,7 @@ watch(() => props.open, async (open) => {
       if (!batchSlots.value.length) ensureBatchInitialized(false);
     }
     if (!dialog.value?.open) dialog.value?.showModal();
+    await device.initialize();
     device.detect();
     void wardrobe.refreshIntegrations();
     if (generationMode.value === "single") scheduleDescriptionTranslation(name.value);

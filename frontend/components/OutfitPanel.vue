@@ -26,7 +26,7 @@
       >
         <button
           class="part-pick"
-          @click="avatar.browsingPoses = false; wardrobe.activeCategory = category.id"
+          @click="avatar.browsingPoses = false; wardrobe.activeCategory = category.id; wardrobe.query = ''; emit('select-category', category.id)"
         >
           <span class="part-thumb"
             ><img
@@ -181,7 +181,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from "vue";
 withDefaults(defineProps<{ inspector?: boolean }>(), { inspector: false });
-const emit = defineEmits<{ "select-pose": [] }>();
+const emit = defineEmits<{ "select-pose": []; "select-category": [category: Category] }>();
 import {
   Copy,
   Plus,

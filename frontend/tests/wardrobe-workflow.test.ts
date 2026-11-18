@@ -17,6 +17,23 @@ const garment = (id: string) => catalog.items.find(item => item.id === id)! as G
 const setup = async () => { const store = useWardrobe(); await store.initialize(); return store; };
 
 describe("coordinate editing and recovery", () => {
+  it("hydrates the generated prompt and its signature together without marking it stale", () => {
+    const serverPinia = createPinia();
+    setActivePinia(serverPinia);
+    const server = useWardrobe();
+    server.seedDefaults();
+    expect(server.resultIsStale).toBe(false);
+    const transferred = JSON.parse(JSON.stringify(serverPinia.state.value));
+    server.$dispose();
+    const clientPinia = createPinia();
+    clientPinia.state.value = transferred;
+    setActivePinia(clientPinia);
+    const client = useWardrobe();
+    expect(client.result).toEqual(server.result);
+    expect(client.resultIsStale).toBe(false);
+    client.notes = "袖を短く";
+    expect(client.resultIsStale).toBe(true);
+  });
   it("paints a single garment without changing ink, geometry or the other clothes", async () => {
     const store = await setup(), top = garment("sailor-top"), skirt = garment("pleated-skirt");
     const before = store.previewImage(top), other = store.previewImage(skirt);

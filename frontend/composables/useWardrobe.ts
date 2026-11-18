@@ -494,6 +494,8 @@ export const useWardrobe = defineStore("wardrobe", () => {
     toast,
     integrations,
     result,
+    // Pinia must transfer this alongside the result during SSR hydration.
+    generatedSignature,
     generating,
     recommending,
     lastRecommendation,

@@ -19,6 +19,21 @@ npm run dev    # Python APIとNuxtをまとめて起動。Ctrl+Cで両方停止
 
 RefLensの既存サーバーとぶつからないよう、独立したポートを使います。変更する場合は `BACKEND_PORT=8086 FRONTEND_PORT=3006 npm run dev`。
 
+### Macで常駐・自動復旧する
+
+ターミナルやエディターを閉じても開発サイトを使う場合は、macOSのLaunchAgentに登録します。通常の `npm run dev` が動いている場合は、先にそのターミナルでCtrl+Cを押してください。
+
+```bash
+npm run service:install  # 初回・常駐設定の更新時
+npm run service:start   # http://127.0.0.1:3005
+npm run service:status  # 画面・JSアセット・APIの応答確認
+npm run service:stop    # 意図的に停止するとき
+```
+
+フロントエンドとPython APIを別々に監視し、終了時にlaunchdが再起動します。20秒ごとのHTTP監視が3回続けて失敗した場合も、該当サービスだけを再起動します。再起動には120秒の間隔を設けています。ログは `logs/frontend.log`、`logs/backend.log`、`logs/watchdog.log` に保存し、監視時に容量を制限します。通常どおりファイル編集を即時反映します。
+
+同じMacユーザーのログイン時にも自動起動します。Macがスリープ中・電源オフ・ログアウト中は配信されません。常駐と手動の開発サーバーは同時起動しないでください。監視のテストは `npm run test:service` で実行できます。
+
 ## 使い方
 
 1. 部位別の図鑑から衣装パーツを選びます。帽子・バッグ・ジュエリーを含む8部位、46点。初期コーデはグレーを基調とし、アウター・バッグ・ネックレスは着用しません。

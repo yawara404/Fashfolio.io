@@ -6,17 +6,14 @@ import { Tokenizer } from "@huggingface/tokenizers";
 import { latentNoise, scaleLatents, eulerStep, decodePixels, removeWhiteBackdrop } from "../utils/diffusion";
 import { imageSchedule, imageLatents, imageEulerStep, imageTensor, toFloat16, fromFloat16 } from "../utils/img2img";
 import { VAE_SCALE } from "../utils/diffusion";
-import { chunkedModel, fileModel } from "../utils/modelCache";
+import { chunkedModel, fileModel, MODEL_CACHE_NAME } from "../utils/modelCache";
+import { DIFFUSION_ENCODER_FILE, DIFFUSION_MODEL_FILES, DIFFUSION_MODEL_URL, DIFFUSION_TOKENIZER_URL } from "../utils/diffusionModelFiles";
 import { HUMAN_FREE_GUARD } from "../utils/generationPrompt";
 
-const MODEL = "https://huggingface.co/schmuell/sd-turbo-ort-web/resolve/ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1";
-const TOKENIZER = "https://huggingface.co/Xenova/clip-vit-base-patch16/resolve/342fdf2f67aded64d138ff074745fb4a5d2bba5f";
-const CACHE = "fashfolio-sd-turbo-v1";
-const definitions = [
-  { key: "text", path: "text_encoder/model.onnx", size: 681393168, dimensions: { batch_size: 1 } },
-  { key: "unet", path: "unet/model.onnx", size: 1733430199, dimensions: { batch_size: 1, num_channels: 4, height: 64, width: 64, sequence_length: 77 } },
-  { key: "vae", path: "vae_decoder/model.onnx", size: 99094314, dimensions: { batch_size: 1, num_channels_latent: 4, height_latent: 64, width_latent: 64 } },
-] as const;
+const MODEL = DIFFUSION_MODEL_URL;
+const TOKENIZER = DIFFUSION_TOKENIZER_URL;
+const CACHE = MODEL_CACHE_NAME;
+const definitions = DIFFUSION_MODEL_FILES;
 const sessions: Record<string, ort.InferenceSession> = {};
 let tokenizer: Tokenizer | undefined;
 let busy = false;
@@ -25,18 +22,21 @@ function status(message: string, progress?: number) { send({ type: "status", mes
 function fetchWeight(key:string,path:string,size:number) {
   status(`${key}のモデルを準備中`);
   // Cache key is the canonical upstream URL; the shared R2 copy (via Nuxt) is the preferred source,
-  // and each device persists the weights in its own browser Cache Storage.
+  // and each device persists the weights in browser storage.
   return fetchCached(`${MODEL}/${path}`,key,size,[`/model-assets/${key}?revision=ace89b7d2cd849f9a73914cdbb8a3ea60c853dd1`,`${MODEL}/${path}`]);
 }
 async function fetchCached(url: string, label: string, size = 0, sources?: string[]) {
   let cache: Cache | undefined;
   try { cache = await caches.open(CACHE); } catch { /* Private mode can disable Cache Storage. */ }
-  if (size > 128 * 1024 * 1024) {
+  // OPFS is the primary store for weights. Cache Storage is used for small
+  // files (tokenizer) and as a fallback if OPFS is unavailable or full.
+  if (size > 32 * 1024 * 1024) {
     const progress=(received:number,total:number,saving?:boolean)=>status(`${label} ${Math.round(received/1e6)} / ${Math.round(total/1e6)} MB${saving ? ' · 保存中' : ''}`,received/total);
     const warning=()=>send({type:"warning",message:"モデルを保存できませんでした。次回は再取得が必要です。"});
-    // Browser Cache Storage (bounded chunks) is the per-device store; OPFS only when Cache Storage is unavailable.
-    if(cache) return chunkedModel(url,size,cache,progress,warning,undefined,sources);
-    return await fileModel(url,size,cache,progress,warning,sources) ?? chunkedModel(url,size,cache,progress,warning,undefined,sources);
+    const file = await fileModel(url,size,cache,progress,()=>{},sources).catch(()=>undefined);
+    if (file) return file;
+    if (!cache) warning();
+    return chunkedModel(url,size,cache,progress,warning,undefined,sources);
   }
   const cached = await cache?.match(url);
   if (cached) { status(label + "をキャッシュから読み込み中"); return cached.arrayBuffer(); }
@@ -93,7 +93,7 @@ async function prepare() {
 async function prepareEncoder() {
   await prepare();
   if (sessions.encoder) return;
-  const bytes = await fetchWeight("encoder","vae_encoder/model.onnx",68430468);
+  const bytes = await fetchWeight(DIFFUSION_ENCODER_FILE.key, DIFFUSION_ENCODER_FILE.path, DIFFUSION_ENCODER_FILE.size);
   sessions.encoder = await ort.InferenceSession.create(bytes, {
     executionProviders: ["webgpu"], enableMemPattern: false, enableCpuMemArena: false,
     freeDimensionOverrides: { batch_size: 1, num_channels: 3, height: 512, width: 512 },

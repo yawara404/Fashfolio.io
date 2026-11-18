@@ -1,7 +1,8 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { Garment } from "~/types/wardrobe";
-import { clearModelFiles } from "~/utils/modelCache";
+import { clearModelFiles, MODEL_CACHE_NAME } from "~/utils/modelCache";
+import { hasCachedDiffusionModel } from "~/utils/diffusionModelFiles";
 
 export interface BatchPartInput {
   base: Garment;
@@ -30,6 +31,8 @@ class RecoverableGenerationError extends Error {}
 export const useDeviceGeneration = defineStore("device-generation", () => {
   const supported = ref<boolean | null>(null);
   const ready = ref(false);
+  const modelCached = ref(false);
+  const checkingCache = ref(false);
   const busy = ref(false);
   const dialogOpen = ref(false);
   const phase = ref<"idle" | "prepare" | "generate" | "batch" | "tryon">("idle");
@@ -46,6 +49,8 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
   const batchProgress = ref<{ current: number; total: number; label: string } | null>(null);
   let worker: Worker | null = null;
   let batchToken = 0;
+  let cacheCheck: Promise<boolean> | null = null;
+  let cacheCheckToken = 0;
   let pendingGenerate: { resolve: (result: { image: Blob; seed: number; duration: number }) => void; reject: (error: Error) => void } | null = null;
   let pendingTryOn: { resolve: (image: Blob) => void; reject: (error: Error) => void } | null = null;
   async function detect() {
@@ -54,6 +59,40 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
       const adapter = await gpu?.requestAdapter();
       supported.value = !!adapter?.features.has("shader-f16") && "OffscreenCanvas" in window;
     } catch { supported.value = false; }
+  }
+  const MODEL_READY_STORAGE_KEY = "fashfolio-diffusion-model-ready";
+  async function initialize() {
+    await detect();
+    const cached = await hasCachedDiffusionModel().catch(() => false);
+    if (cached) {
+      modelCached.value = true;
+      ready.value = true;
+      try { localStorage.setItem(MODEL_READY_STORAGE_KEY, "1"); } catch {}
+    } else {
+      try {
+        if (localStorage.getItem(MODEL_READY_STORAGE_KEY) === "1") modelCached.value = true;
+      } catch {}
+    }
+  }
+  function checkCache(): Promise<boolean> {
+    if (ready.value || modelCached.value) {
+      modelCached.value = true;
+      return Promise.resolve(true);
+    }
+    if (cacheCheck) return cacheCheck;
+    const token = ++cacheCheckToken;
+    checkingCache.value = true;
+    cacheCheck = hasCachedDiffusionModel()
+      .catch(() => false)
+      .then((cached) => {
+        if (token !== cacheCheckToken) return false;
+        modelCached.value = cached;
+        if (cached) ready.value = true;
+        checkingCache.value = false;
+        cacheCheck = null;
+        return cached;
+      });
+    return cacheCheck;
   }
   function clearResult() {
     if (preview.value) URL.revokeObjectURL(preview.value);
@@ -77,6 +116,7 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
       if (data.type === "warning") warning.value = data.message;
       if (data.type === "ready") {
         ready.value = true;
+        modelCached.value = true;
         if (phase.value === "prepare") {
           busy.value = false; phase.value = "idle"; message.value = "この端末で生成できます"; progress.value = null;
         }
@@ -290,5 +330,6 @@ export const useDeviceGeneration = defineStore("device-generation", () => {
     try { await caches.delete("fashfolio-sd-turbo-v1"); await clearModelFiles(); message.value = "モデルのキャッシュを削除しました"; }
     catch { error.value = "キャッシュを削除できませんでした。ブラウザのサイトデータ設定をご確認ください。"; }
   }
-  return { supported, ready, busy, dialogOpen, phase, message, progress, error, warning, image, preview, resultSeed, duration, context, batchResults, batchProgress, detect, prepare, generate, generateBatch, regenerateBatchItem, clearBatchResults, renderTryOn, cancel, clearCache, clearResult };
+  void initialize().catch(() => { /* Local storage / OPFS may be unavailable in this context. */ });
+  return { supported, ready, busy, dialogOpen, phase, message, progress, error, warning, image, preview, resultSeed, duration, context, batchResults, batchProgress, detect, initialize, prepare, generate, generateBatch, regenerateBatchItem, clearBatchResults, renderTryOn, cancel, clearCache, clearResult };
 });
